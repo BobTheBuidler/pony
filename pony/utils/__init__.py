@@ -1,4 +1,4 @@
 
-from ._utils import *
-from .utils import *
-from .properties import *
+from pony.utils._utils import *
+from pony.utils.utils import *
+from pony.utils.properties import *
