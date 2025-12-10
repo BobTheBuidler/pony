@@ -10,6 +10,7 @@ from typing import Any, List, Sequence, Tuple, Union
 from pony import options
 from pony.utils import datetime2timestamp, throw, is_ident
 from pony.converting import timedelta2str
+from pony.orm._sqlbuilding import Value
 from pony.orm.ormtypes import RawSQL, Json
 
 class AstError(Exception): pass
@@ -61,35 +62,6 @@ class CompositeParam(Param):
     def eval(param, values):
         args = [ item.eval(values) if isinstance(item, Param) else item.value for item in param.items ]
         return param.func(args)
-
-class Value(object):
-    def __init__(self, paramstyle: str, value) -> None:
-        self.paramstyle: str = paramstyle
-        self.value = value
-    def __str__(self) -> str:
-        value = self.value
-        if value is None:
-            return 'null'
-        if isinstance(value, bool):
-            return value and '1' or '0'
-        if isinstance(value, str):
-            return self.quote_str(value)
-        if isinstance(value, datetime):
-            return 'TIMESTAMP ' + self.quote_str(datetime2timestamp(value))
-        if isinstance(value, date):
-            return 'DATE ' + self.quote_str(str(value))
-        if isinstance(value, timedelta):
-            return "INTERVAL '%s' HOUR TO SECOND" % timedelta2str(value)
-        if isinstance(value, (int, float, Decimal)):
-            return str(value)
-        if isinstance(value, bytes):
-            return f"X'{hexlify(value).decode('ascii')}'"
-        assert False, repr(value)  # pragma: no cover
-    def __repr__(self) -> str:
-        return '%s(%r)' % (self.__class__.__name__, self.value)
-    def quote_str(self, s: str) -> str:
-        if self.paramstyle in ('format', 'pyformat'): s = s.replace('%', '%%')
-        return f"'{s.replace("'", "''")}'"
 
 def flat(tree):
     stack = [ tree ]
