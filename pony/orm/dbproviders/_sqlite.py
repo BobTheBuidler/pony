@@ -7,7 +7,6 @@ from pony.utils import datetime2timestamp, timestamp2datetime
 
 
 class SQLiteValue(Value):
-    __slots__: List[str] = []
     def __str__(self) -> str:
         value = self.value
         if isinstance(value, datetime.datetime):
