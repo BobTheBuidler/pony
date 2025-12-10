@@ -165,7 +165,7 @@ def error_method(*args, **kwargs):
 _ident_re = re.compile(r'^[A-Za-z_]\w*\Z')
 
 # is_ident = ident_re.match
-def is_ident(string):
+def is_ident(string: str) -> bool:
     'is_ident(string) -> bool'
     return bool(_ident_re.match(string))
 
