@@ -5,7 +5,7 @@ from operator import attrgetter
 from decimal import Decimal
 from datetime import date, datetime, timedelta
 from binascii import hexlify
-from typing import Any, List, Sequence, Tuple, Union
+from typing import Any, List, Literal, Sequence, Tuple, Union
 
 from pony import options
 from pony.utils import datetime2timestamp, throw, is_ident
