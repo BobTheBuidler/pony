@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 from setuptools import setup
+from mypyc.build import mypycify
 import sys
 
 import unittest
@@ -106,6 +107,8 @@ package_data = {
     'pony.orm.tests': ['queries.txt']
 }
 
+ext_modules = mypycify(["pony/converting.py", "--strict", "--follow-imports=silent"])
+
 download_url = "http://pypi.python.org/pypi/pony/"
 
 if __name__ == "__main__":
@@ -130,5 +133,7 @@ if __name__ == "__main__":
         packages=packages,
         package_data=package_data,
         download_url=download_url,
-        test_suite='setup.test_suite'
+        test_suite='setup.test_suite',
+        ext_modules=ext_modules,
     )
+
