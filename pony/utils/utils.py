@@ -10,6 +10,7 @@ from collections import defaultdict
 from functools import update_wrapper, wraps
 from xml.etree import cElementTree
 from copy import deepcopy
+from typing import Any
 
 import pony
 from pony import options
