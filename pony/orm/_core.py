@@ -9,6 +9,12 @@ if TYPE_CHECKING:
   from pony.orm.core import DBSessionContextManager, Entity, EntityMeta, Local, PrefetchContext
 
 
+statuses = {'created', 'cancelled', 'loaded', 'modified', 'inserted', 'updated', 'marked_to_delete', 'deleted'}
+del_statuses = {'marked_to_delete', 'deleted', 'cancelled'}
+created_or_deleted_statuses = {'created'} | del_statuses
+saved_statuses = {'inserted', 'updated', 'deleted'}
+
+
 '''
 @final
 class Local(localbase):
