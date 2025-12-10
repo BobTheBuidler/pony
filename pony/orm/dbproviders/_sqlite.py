@@ -16,7 +16,7 @@ class SQLiteValue(Value):
             return cast(str, self.quote_str(str(value)))  # type: ignore [no-untyped-call]
         if isinstance(value, datetime.timedelta):
             return repr(value.total_seconds() / (24 * 60 * 60))
-        return Value.__str__(self)
+        return super().__str__()
 
 class SQLiteDateConverter(dbapiprovider.DateConverter):
     def sql2py(converter, val: str) -> Union[datetime.date, str]:
@@ -28,7 +28,7 @@ class SQLiteDateConverter(dbapiprovider.DateConverter):
         return val.strftime('%Y-%m-%d')
 
 class SQLiteTimeConverter(dbapiprovider.TimeConverter):
-    def sql2py(converter, val: str) -> datetime.time:
+    def sql2py(converter, val: str) -> Union[datetime.time, str]:
         try:
             if len(val) <= 8: dt = datetime.strptime(val, '%H:%M:%S')
             else: dt = datetime.strptime(val, '%H:%M:%S.%f')
@@ -44,7 +44,7 @@ class SQLiteTimedeltaConverter(dbapiprovider.TimedeltaConverter):
         return val.days + (val.seconds + val.microseconds / 1000000.0) / 86400.0
 
 class SQLiteDatetimeConverter(dbapiprovider.DatetimeConverter):
-    def sql2py(converter, val: str) -> datetime.datetime:
+    def sql2py(converter, val: str) -> Union[datetime.datetime, str]:
         try: return timestamp2datetime(val)
         except: return val
     def py2sql(converter, val: datetime.datetime) -> str:
