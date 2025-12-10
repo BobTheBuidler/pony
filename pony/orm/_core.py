@@ -223,16 +223,16 @@ def _get_by_raw_pkval_(
 
 def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # type: ignore [type-arg]
     assert obj._status_ not in created_or_deleted_statuses
-    cache = obj._session_cache_
+    cache = obj._session_cache_  # type: ignore [attr-defined]
     assert cache is not None and cache.is_alive
-    cache.seeds[obj._pk_attrs_].discard(obj)
+    cache.seeds[obj._pk_attrs_].discard(obj)  # type: ignore [attr-defined]
     if not avdict: return
 
-    obj_vals: dict = obj._vals_  # type: ignore [type-arg]
+    obj_vals: dict = obj._vals_  # type: ignore [attr-defined, type-arg]
     obj_dbvals: dict = obj._dbvals_  # type: ignore [type-arg]
   
-    rbits = obj._rbits_  # type: ignore [attr-defined, has-type]
-    wbits = obj._wbits_  # type: ignore [attr-defined, has-type]
+    rbits = obj._rbits_  # type: ignore [has-type]
+    wbits = obj._wbits_  # type: ignore [has-type]
     for attr, new_dbval in list(avdict.items()):
         assert attr.pk_offset is None
         assert new_dbval is not NOT_LOADED
