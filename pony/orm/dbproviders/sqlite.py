@@ -11,6 +11,7 @@ from binascii import hexlify
 from functools import wraps
 
 from pony.orm import core, dbschema, dbapiprovider
+from pony.orm.sqlbuilding import Value
 from pony.orm.core import log_orm
 from pony.orm.ormtypes import Json, TrackedArray
 from pony.orm.sqltranslation import SQLTranslator, StringExprMonad
