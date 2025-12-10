@@ -1,5 +1,6 @@
 # These were in utils.py but we're not ready to compile the full file yet
-from datetime import datetime, strptime
+from datetime import datetime
+from time import strptime
 
 _CACHE_MAXSIZE: Final = 10_000
 _TIMESTAMP_TO_DATETIME: Final[Dict[str, datetime]] = {}
