@@ -39,7 +39,7 @@ class Param(object):
                 value = converter.val2dbval(value)
             value = converter.py2sql(value)
         return value
-    def __str__(param):
+    def __str__(param) -> str:
         paramstyle = param.style
         if paramstyle == 'qmark': return u'?'
         elif paramstyle == 'format': return u'%s'
@@ -66,7 +66,7 @@ class Value(object):
     def __init__(self, paramstyle, value):
         self.paramstyle = paramstyle
         self.value = value
-    def __str__(self):
+    def __str__(self) -> str:
         value = self.value
         if value is None:
             return 'null'
