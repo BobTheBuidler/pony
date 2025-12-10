@@ -1,5 +1,5 @@
-
 from binascii import hexlify
+from typing import Any
 
 from mypy_extensions import mypyc_attr
 
@@ -8,7 +8,7 @@ from pony.converting import timedelta2str
 
 @mypyc_attr(allow_interpreted_subclasses=True)
 class Value(object):
-    def __init__(self, paramstyle: str, value) -> None:
+    def __init__(self, paramstyle: str, value: Any) -> None:
         self.paramstyle: Final = paramstyle
         self.value: Final = value
     def __str__(self) -> str:
