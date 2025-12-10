@@ -1,7 +1,7 @@
 # mypy: disable-error-code="var-annotated"
 import itertools
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Final, List, Tuple, final
+from typing import TYPE_CHECKING, Any, Final, List, Optional, Tuple, final
 
 from pony.utils import localbase, throw
 
