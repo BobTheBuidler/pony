@@ -98,7 +98,7 @@ def _get_from_identity_map_(  # type: ignore [no-untyped-def]
     undo_funcs=None,
     obj_to_init=None,
 ):
-    cache = entity._database_._get_cache()
+    cache = entity._database_._get_cache()  # type: ignore [union-attr]
     pk_attrs = entity._pk_attrs_
     cache_index = cache.indexes[pk_attrs]
     if pkval is None: obj = None
@@ -121,7 +121,7 @@ def _get_from_identity_map_(  # type: ignore [no-untyped-def]
         with cache.flush_disabled():
             obj = obj_to_init
             if obj_to_init is None:
-                obj = object.__new__(entity)
+                obj = object.__new__(entity)  # type: ignore [arg-type]
             cache.objects.add(obj)
             obj._pkval_ = pkval
             obj._status_ = status
