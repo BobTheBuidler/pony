@@ -2,13 +2,15 @@ from __future__ import absolute_import, print_function
 
 import re
 from datetime import datetime, date, time, timedelta
+from typing import Dict, Final, List, Optional, Tuple, Type
 
 from pony.utils import is_ident
 
+@final
 class ValidationError(ValueError):
     pass
 
-def check_ip(s):
+def check_ip(s: str) -> str:
     s = s.strip()
     items = s.split('.')
     if len(items) != 4: raise ValueError()
@@ -16,29 +18,29 @@ def check_ip(s):
         if not 0 <= int(item) <= 255: raise ValueError()
     return s
 
-def check_positive(s):
+def check_positive(s: str) -> str:
     i = int(s)
     if i > 0: return i
     raise ValueError()
 
-def check_identifier(s):
+def check_identifier(s: str) -> str:
     if is_ident(s): return s
     raise ValueError()
 
-isbn_re = re.compile(r'(?:\d[ -]?)+x?')
+isbn_re: Final = re.compile(r'(?:\d[ -]?)+x?')
 
-def isbn10_checksum(digits):
+def isbn10_checksum(digits: str) -> str:
     if len(digits) != 9: raise ValueError()
     reminder = sum(digit*coef for digit, coef in zip(map(int, digits), range(10, 1, -1))) % 11
     if reminder == 1: return 'X'
     return reminder and str(11 - reminder) or '0'
 
-def isbn13_checksum(digits):
+def isbn13_checksum(digits: str) -> str:
     if len(digits) != 12: raise ValueError()
     reminder = sum(digit*coef for digit, coef in zip(map(int, digits), (1, 3)*6)) % 10
     return reminder and str(10 - reminder) or '0'
 
-def check_isbn(s, convert_to=None):
+def check_isbn(s: str, convert_to: Optional[int] = None) -> str:
     s = s.strip().upper()
     if s[:4] == 'ISBN': s = s[4:].lstrip()
     digits = s.replace('-', '').replace(' ', '')
@@ -60,20 +62,20 @@ def check_isbn(s, convert_to=None):
             s = digits + isbn10_checksum(digits)
     return s
 
-def isbn10_to_isbn13(s):
+def isbn10_to_isbn13(s: str) -> str:
     return check_isbn(s, convert_to=13)
 
-def isbn13_to_isbn10(s):
+def isbn13_to_isbn10(s: str) -> str:
     return check_isbn(s, convert_to=10)
 
 # The next two regular expressions taken from
 # http://www.regular-expressions.info/email.html
 
-email_re = re.compile(
+email_re: Final = re.compile(
     r'^[a-z0-9._%+-]+@[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+$',
     re.IGNORECASE)
 
-rfc2822_email_re = re.compile(r'''
+rfc2822_email_re: Final = re.compile(r'''
     ^(?: [a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*
      |   "(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*"
      )
@@ -86,17 +88,17 @@ rfc2822_email_re = re.compile(r'''
          \]
      )$''', re.IGNORECASE | re.VERBOSE)
 
-def check_email(s):
+def check_email(s: str) -> str:
     s = s.strip()
     if email_re.match(s) is None: raise ValueError()
     return s
 
-def check_rfc2822_email(s):
+def check_rfc2822_email(s: str) -> str:
     s = s.strip()
     if rfc2822_email_re.match(s) is None: raise ValueError()
     return s
 
-date_str_list = [
+date_str_list: Final = [
     r'(?P<month>\d{1,2})/(?P<day>\d{1,2})/(?P<year>\d{4})',
     r'(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4})',
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,4})',
@@ -105,9 +107,9 @@ date_str_list = [
     r'\D*(?P<year>\d{4})\D+(?P<day>\d{1,2})\D*',
     r'\D*(?P<day>\d{1,2})\D+(?P<year>\d{4})\D*'
     ]
-date_re_list = [ re.compile(r'^%s$'%s, re.UNICODE) for s in date_str_list ]
+date_re_list: Final = [ re.compile(r'^%s$'%s, re.UNICODE) for s in date_str_list ]
 
-time_str = r'''
+time_str: Final = r'''
     (?P<hh>\d{1,2})  # hours
     (?: \s* [hu] \s* )?  # optional hours suffix
     (?:
@@ -125,16 +127,16 @@ time_str = r'''
         \s* (?: (?P<am> a\.?m\.? ) | (?P<pm> p\.?m\.? ) )
     )?
 '''
-time_re = re.compile(r'^%s$'%time_str, re.VERBOSE)
+time_re: Final = re.compile(r'^%s$'%time_str, re.VERBOSE)
 
-datetime_re_list = [ re.compile(r'^%s(?:[t ]%s)?$' % (date_str, time_str), re.UNICODE | re.VERBOSE)
+datetime_re_list: Final = [ re.compile(r'^%s(?:[t ]%s)?$' % (date_str, time_str), re.UNICODE | re.VERBOSE)
                      for date_str in date_str_list ]
 
-month_lists = [
+month_lists: Final = [
     "jan feb mar apr may jun jul aug sep oct nov dec".split(),
     u"янв фев мар апр май июн июл авг сен окт ноя дек".split(),  # Russian
     ]
-month_dict = {}
+month_dict: Final[Dict[str, int]] = {}
 
 for month_list in month_lists:
     for i, month in enumerate(month_list):
@@ -142,7 +144,7 @@ for month_list in month_lists:
 
 month_dict[u'мая'] = 5  # Russian
 
-def str2date(s):
+def str2date(s: str) -> date:
     s = s.strip().lower()
     for date_re in date_re_list:
         match = date_re.match(s)
@@ -158,14 +160,14 @@ def str2date(s):
         else: raise ValueError('Unrecognized date format')
     return date(int(year), int(month), int(day))
 
-def str2time(s):
+def str2time(s: str) -> time:
     s = s.strip().lower()
     match = time_re.match(s)
     if match is None: raise ValueError('Unrecognized time format')
     hh, mm, ss, mcs = _extract_time_parts(match.groupdict())
     return time(hh, mm, ss, mcs)
 
-def str2datetime(s):
+def str2datetime(s: str) -> datetime:
     s = s.strip().lower()
     for datetime_re in datetime_re_list:
         match = datetime_re.match(s)
@@ -183,7 +185,7 @@ def str2datetime(s):
     hh, mm, ss, mcs = _extract_time_parts(d)
     return datetime(int(year), int(month), int(day), hh, mm, ss, mcs)
 
-def _extract_time_parts(groupdict):
+def _extract_time_parts(groupdict: Dict[str, int]) -> Tuple[int int, int, int]:
     hh, mm, ss, am, pm = map(groupdict.get, ('hh', 'mm', 'ss', 'am', 'pm'))
 
     if hh is None: hh, mm, ss = 12, 00, 00
@@ -197,7 +199,7 @@ def _extract_time_parts(groupdict):
 
     return int(hh), int(mm or 0), int(ss or 0), int(mcs)
 
-def str2timedelta(s):
+def str2timedelta(s: str) -> timedelta:
     negative = s.startswith('-')
     if '.' in s:
         s, fractional = s.split('.')
@@ -207,7 +209,7 @@ def str2timedelta(s):
     td = timedelta(hours=abs(h), minutes=m, seconds=s, microseconds=microseconds)
     return -td if negative else td
 
-def timedelta2str(td):
+def timedelta2str(td: timedelta) -> str:
     total_seconds = td.days * (24 * 60 * 60) + td.seconds
     microseconds = td.microseconds
     if td.days < 0:
@@ -222,7 +224,7 @@ def timedelta2str(td):
     if td.days >= 0: return result
     return '-' + result
 
-converters = {
+converters: Final = {
     int:  (int, str, 'Incorrect number'),
     float: (float, str, 'Must be a real number'),
     'IP': (check_ip, str, 'Incorrect IP address'),
