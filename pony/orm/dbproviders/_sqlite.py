@@ -16,7 +16,7 @@ class SQLiteValue(Value):
             return cast(str, self.quote_str(str(value)))  # type: ignore [no-untyped-call]
         if isinstance(value, datetime.timedelta):
             return repr(value.total_seconds() / (24 * 60 * 60))
-        return super().__str__()
+        return cast(str, super().__str__())
 
 class SQLiteDateConverter(dbapiprovider.DateConverter):
     def sql2py(converter, val: str) -> Union[datetime.date, str]:
