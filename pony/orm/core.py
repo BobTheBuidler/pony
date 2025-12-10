@@ -13,7 +13,9 @@ from collections import defaultdict
 from hashlib import md5
 from inspect import isgeneratorfunction
 from functools import wraps
-from typing import Any, Final, List, Optional, Tuple, final
+from typing import Any, Final, List, Optional, Tuple, Union, final
+
+from typing_extensions import Self
 
 import pony
 from pony import options
@@ -1994,7 +1996,7 @@ class DescWrapper(object):
         self.attr = attr
     def __repr__(self) -> str:
         return '<DescWrapper(%s)>' % self.attr
-    def __call__(self) -> DescWrapper:
+    def __call__(self) -> Self:
         return self
     def __eq__(self, other: Any) -> bool:
         return type(other) is DescWrapper and self.attr == other.attr
@@ -2018,15 +2020,15 @@ class Attribute(object):
     @cut_traceback
     def __init__(attr, py_type, *args, **kwargs):
         if attr.__class__ is Attribute: throw(TypeError, "'Attribute' is abstract type")
-        attr.is_implicit = False
+        attr.is_implicit: bool = False
         attr.is_required = isinstance(attr, Required)
         attr.is_discriminator = isinstance(attr, Discriminator)
-        attr.is_unique = kwargs.pop('unique', None)
+        attr.is_unique: Optional[bool] = kwargs.pop('unique', None)
         if isinstance(attr, PrimaryKey):
             if attr.is_unique is not None:
                 throw(TypeError, "'unique' option cannot be set for PrimaryKey attribute ")
             attr.is_unique = True
-        attr.nullable = kwargs.pop('nullable', None)
+        attr.nullable: Optional[bool = kwargs.pop('nullable', None)
         attr.is_part_of_unique_index = attr.is_unique  # Also can be set to True later
         attr.is_pk = isinstance(attr, PrimaryKey)
         if attr.is_pk: attr.pk_offset = 0
@@ -2042,48 +2044,52 @@ class Attribute(object):
         attr.is_collection = isinstance(attr, Collection)
         attr.is_relation = isinstance(attr.py_type, (EntityMeta, str, types.FunctionType))
         attr.is_basic = not attr.is_collection and not attr.is_relation
-        attr.sql_type = kwargs.pop('sql_type', None)
+        attr.sql_type: Optional[str] = kwargs.pop('sql_type', None)
         attr.entity = attr.name = None
         attr.args = args
-        attr.auto = kwargs.pop('auto', False)
-        attr.cascade_delete = kwargs.pop('cascade_delete', None)
+        attr.auto: bool = kwargs.pop('auto', False)
+        attr.cascade_delete: Optional[bool] = kwargs.pop('cascade_delete', None)
 
-        attr.reverse = kwargs.pop('reverse', None)
+        attr.reverse: Optional[bool] = kwargs.pop('reverse', None)
         if not attr.reverse: pass
         elif not isinstance(attr.reverse, (str, Attribute)):
             throw(TypeError, "Value of 'reverse' option must be name of reverse attribute). Got: %r" % attr.reverse)
         elif not attr.is_relation:
             throw(TypeError, 'Reverse option cannot be set for this type: %r' % attr.py_type)
 
-        attr.column = kwargs.pop('column', None)
-        attr.columns = kwargs.pop('columns', None)
-        if attr.column is not None:
-            if attr.columns is not None:
+        column = kwargs.pop('column', None)
+        columns: Union[List[str], Tuple[str, ...], None] = kwargs.pop('columns', None)
+        if column is not None:
+            if columns is not None:
                 throw(TypeError, "Parameters 'column' and 'columns' cannot be specified simultaneously")
             if not isinstance(attr.column, str):
-                throw(TypeError, "Parameter 'column' must be a string. Got: %r" % attr.column)
-            attr.columns = [ attr.column ]
-        elif attr.columns is not None:
-            if not isinstance(attr.columns, (tuple, list)):
+                throw(TypeError, "Parameter 'column' must be a string. Got: %r" % column)
+            attr.column = column
+            attr.columns = [ column ]
+        elif columns is not None:
+            if not isinstance(columns, (tuple, list)):
                 throw(TypeError, "Parameter 'columns' must be a list. Got: %r'" % attr.columns)
-            for column in attr.columns:
+            for column in columns:
                 if not isinstance(column, str):
                     throw(TypeError, "Items of parameter 'columns' must be strings. Got: %r" % attr.columns)
-            if len(attr.columns) == 1: attr.column = attr.columns[0]
-        else: attr.columns = []
-        attr.index = kwargs.pop('index', None)
-        attr.reverse_index = kwargs.pop('reverse_index', None)
-        attr.fk_name = kwargs.pop('fk_name', None)
+            attr.columns = columns
+            attr.column = columns[0] if len(columns) == 1 else None
+        else:
+            attr.column = None
+            attr.columns = []
+        attr.index: Optional[bool] = kwargs.pop('index', None)
+        attr.reverse_index: Optional[bool] = kwargs.pop('reverse_index', None)
+        attr.fk_name: Optional[str] = kwargs.pop('fk_name', None)
         attr.col_paths = []
-        attr._columns_checked = False
+        attr._columns_checked: bool = False
         attr.composite_keys = []
-        attr.lazy = kwargs.pop('lazy', getattr(py_type, 'lazy', False))
+        attr.lazy: bool = kwargs.pop('lazy', getattr(py_type, 'lazy', False))
         attr.lazy_sql_cache = None
-        attr.is_volatile = kwargs.pop('volatile', False)
-        attr.optimistic = kwargs.pop('optimistic', None)
+        attr.is_volatile: bool = kwargs.pop('volatile', False)
+        attr.optimistic: bool = kwargs.pop('optimistic', None)
         attr.sql_default = kwargs.pop('sql_default', None)
         attr.py_check = kwargs.pop('py_check', None)
-        attr.hidden = kwargs.pop('hidden', False)
+        attr.hidden: bool = kwargs.pop('hidden', False)
         attr.interleave = kwargs.pop('interleave', None)
         attr.kwargs = kwargs
         attr.converters = []
@@ -2143,7 +2149,7 @@ class Attribute(object):
                 '`interleave` option cannot be specified for %s attribute %r' % (attr.__class__.__name__, attr))
             if attr.interleave not in (True, False): throw(TypeError,
                 '`interleave` option value should be True, False or None. Got: %r' % attr.interleave)
-    def linked(attr):
+    def linked(attr) -> None:
         reverse = attr.reverse
         if reverse.is_volatile:
             attr.is_volatile = True
@@ -2165,7 +2171,7 @@ class Attribute(object):
     def __repr__(attr) -> str:
         owner_name = attr.entity.__name__ if attr.entity else '?'
         return '%s.%s' % (owner_name, attr.name or '?')
-    def __lt__(attr, other):
+    def __lt__(attr, other: Any) -> None:
         return attr.id < other.id
     def _get_entity(attr, obj, entity):
         if entity is not None:
