@@ -16,7 +16,7 @@ from functools import wraps
 
 import pony
 from pony import options
-from pony.orm._core import local, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
+from pony.orm._core import DEFAULT, NOT_LOADED, local, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
@@ -1953,16 +1953,6 @@ class SessionCache(object):
                 throw(TransactionIntegrityError, '%s with unique index (%s) already exists: %s'
                                  % (obj2.__class__.__name__, ', '.join(attr.name for attr in attrs), key_str))
         cache_index.pop(prev_vals, None)
-
-class NotLoadedValueType(object):
-    def __repr__(self): return 'NOT_LOADED'
-
-NOT_LOADED = NotLoadedValueType()
-
-class DefaultValueType(object):
-    def __repr__(self): return 'DEFAULT'
-
-DEFAULT = DefaultValueType()
 
 class DescWrapper(object):
     def __init__(self, attr):
