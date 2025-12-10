@@ -1,13 +1,14 @@
 import sys, platform
+from typing import Final
 
-PYPY = platform.python_implementation() == 'PyPy'
-PY36 = sys.version_info[:2] >= (3, 6)
-PY37 = sys.version_info[:2] >= (3, 7)
-PY38 = sys.version_info[:2] >= (3, 8)
-PY39 = sys.version_info[:2] >= (3, 9)
-PY310 = sys.version_info[:2] >= (3, 10)
-PY311 = sys.version_info[:2] >= (3, 11)
-PY312 = sys.version_info[:2] >= (3, 12)
+PYPY: Final = platform.python_implementation() == 'PyPy'
+PY36: Final = sys.version_info[:2] >= (3, 6)
+PY37: Final = sys.version_info[:2] >= (3, 7)
+PY38: Final = sys.version_info[:2] >= (3, 8)
+PY39: Final = sys.version_info[:2] >= (3, 9)
+PY310: Final = sys.version_info[:2] >= (3, 10)
+PY311: Final = sys.version_info[:2] >= (3, 11)
+PY312: Final = sys.version_info[:2] >= (3, 12)
 
 unicode = str
 buffer = bytes
