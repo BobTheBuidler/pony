@@ -22,7 +22,7 @@ from datetime import (date as datetime_date,
                       timedelta as datetime_timedelta,
                       timezone as datetime_timezone)
 from _thread import allocate_lock as _thread_allocate_lock
-from typing import Final, List, Optional, Tuple, Type, TypeVar
+from typing import Dict, Final, List, Optional, Tuple, Type, TypeVar
 
 __all__ = []
 
@@ -173,7 +173,7 @@ class LocaleTime:
         self.timezone = (no_saving, has_saving)
 
 
-class TimeRE(dict[str, str]):
+class TimeRE(Dict[str, str]):
     """Handle conversion from format directives to regexes."""
 
     def __init__(self, locale_time: Optional[LocaleTime] = None):
