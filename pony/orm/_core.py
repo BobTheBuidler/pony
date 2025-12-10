@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Final, List, Optional, Tuple, final
 from pony.utils import localbase, throw
 
 if TYPE_CHECKING:
-  from pony.orm.core import EntityMeta, PrefetchContext
+  from pony.orm.core import DBSessionContextManager, EntityMeta, PrefetchContext
 
 
 @final
@@ -17,7 +17,7 @@ class Local(localbase):
         local.debug_stack: List[Tuple[bool, Optional[bool]]] = []
         local.db2cache = {}
         local.db_context_counter = 0
-        local.db_session = None
+        local.db_session: Optional["DBSessionContextManager"] = None
         local.prefetch_context_stack: Final[List["PrefetchContext"]] = []
         local.current_user: Any = None
         local.perms_context: Any = None
