@@ -308,7 +308,7 @@ def _calc_julian_from_V(iso_year: int, iso_week: int, iso_weekday: int) -> Tuple
     return iso_year, ordinal
 
 
-def _strptime(data_string: str, format: str = "%a %b %d %H:%M:%S %Y") -> Tuple[Tuple[int, int, int, int, int, int, int, int, int, str, Optional[int]], int, int]:
+def _strptime(data_string: str, format: str = "%a %b %d %H:%M:%S %Y") -> Tuple[Tuple[int, int, int, int, int, int, int, int, int, Optional[str], Optional[int]], int, int]:
     """Return a 2-tuple consisting of a time struct and an int containing
     the number of microseconds based on the input string and the
     format string."""
