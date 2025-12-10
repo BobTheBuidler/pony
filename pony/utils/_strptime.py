@@ -11,6 +11,7 @@ FUNCTIONS:
     strptime -- Calculates the time struct represented by the passed-in string
 
 """
+import re
 import time
 import locale
 import calendar
@@ -21,7 +22,7 @@ from datetime import (date as datetime_date,
                       timedelta as datetime_timedelta,
                       timezone as datetime_timezone)
 from _thread import allocate_lock as _thread_allocate_lock
-from typing import List, Optional, Tuple, Type, TypeVar
+from typing import Final, List, Optional, Tuple, Type, TypeVar
 
 __all__ = []
 
@@ -172,7 +173,7 @@ class LocaleTime:
         self.timezone = (no_saving, has_saving)
 
 
-class TimeRE(dict):
+class TimeRE(dict[str, str]):
     """Handle conversion from format directives to regexes."""
 
     def __init__(self, locale_time: Optional[LocaleTime] = None):
@@ -186,7 +187,7 @@ class TimeRE(dict):
         else:
             self.locale_time = LocaleTime()
         base = super()
-        base.__init__({
+        base.__init__({  # type: ignore [misc]
             # The " [1-9]" part of the regex is to make %c from ANSI C work
             'd': r"(?P<d>3[0-1]|[1-2]\d|0[1-9]|[1-9]| [1-9])",
             'f': r"(?P<f>[0-9]{1,6})",
@@ -259,7 +260,7 @@ class TimeRE(dict):
             format = format[directive_index+1:]
         return f"{processed_format}{format}"
 
-    def compile(self, format: str) -> str:
+    def compile(self, format: str) -> re.Pattern[str]:
         """Return a compiled re object for the format string."""
         return re_compile(self.pattern(format), IGNORECASE)
 
@@ -562,20 +563,18 @@ def _strptime_time(data_string: str, format: str = "%a %b %d %H:%M:%S %Y") -> ti
     """Return a time struct based on the input string and the
     format string."""
     tt = _strptime(data_string, format)[0]
-    return time.struct_time(tt[:time._STRUCT_TM_ITEMS])
+    return time.struct_time(tt[:time._STRUCT_TM_ITEMS])  # type: ignore [attr-defined]
 
 def _strptime_datetime(cls: Type[T], data_string: str, format: str = "%a %b %d %H:%M:%S %Y") -> T:
     """Return a class cls instance based on the input string and the
     format string."""
     tt, fraction, gmtoff_fraction = _strptime(data_string, format)
     tzname, gmtoff = tt[-2:]
-    args = tt[:6] + (fraction,)
-    if gmtoff is not None:
-        tzdelta = datetime_timedelta(seconds=gmtoff, microseconds=gmtoff_fraction)
-        if tzname:
-            tz = datetime_timezone(tzdelta, tzname)
-        else:
-            tz = datetime_timezone(tzdelta)
-        args += (tz,)
-
-    return cls(*args)  # type: ignore [call-arg]
+    if gmtoff is None:
+        return cls(*tt[:6], fraction)
+    tzdelta = datetime_timedelta(seconds=gmtoff, microseconds=gmtoff_fraction)
+    if tzname:
+        tz = datetime_timezone(tzdelta, tzname)
+    else:
+        tz = datetime_timezone(tzdelta)
+    return cls(*tt[:6], fraction, tz)
