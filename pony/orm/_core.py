@@ -1,3 +1,4 @@
+import itertools
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Final, Tuple, final
 
@@ -83,6 +84,9 @@ def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[t
     assert None not in pkval
     if not entity._pk_is_composite_: pkval = pkval[0]
     return real_entity_subclass, pkval, avdict
+
+
+new_instance_id_counter: Final = itertools.count(1)
 
 
 def _get_from_identity_map_(  # type: ignore [no-untyped-def]
