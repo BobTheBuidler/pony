@@ -1,3 +1,4 @@
+# mypy: disable-error-code="index"
 """Strptime-related classes and functions.
 
 CLASSES:
@@ -262,12 +263,12 @@ class TimeRE(dict):
         """Return a compiled re object for the format string."""
         return re_compile(self.pattern(format), IGNORECASE)
 
-_cache_lock = _thread_allocate_lock()
+_cache_lock: Final = _thread_allocate_lock()
 # DO NOT modify _TimeRE_cache or _regex_cache without acquiring the cache lock
 # first!
-_TimeRE_cache = TimeRE()
-_CACHE_MAX_SIZE = 5 # Max number of regexes stored in _regex_cache
-_regex_cache = {}
+_TimeRE_cache: Final = TimeRE()
+_CACHE_MAX_SIZE: Final = 5 # Max number of regexes stored in _regex_cache
+_regex_cache: Final[Dict[str, re.Match]] = {}
 
 def _calc_julian_from_U_or_W(year: int, week_of_year: int, day_of_week: int, week_starts_Mon: bool) -> int:
     """Calculate the Julian day based on the year, week of the year, and day of
@@ -306,7 +307,7 @@ def _calc_julian_from_V(iso_year: int, iso_week: int, iso_weekday: int) -> Tuple
     return iso_year, ordinal
 
 
-def _strptime(data_string: str, format: str = "%a %b %d %H:%M:%S %Y") -> Tuple[Tuple[int, int, int, int, int, int, int, int, int, str, int], int, int]:
+def _strptime(data_string: str, format: str = "%a %b %d %H:%M:%S %Y") -> Tuple[Tuple[int, int, int, int, int, int, int, int, int, str, Optional[int]], int, int]:
     """Return a 2-tuple consisting of a time struct and an int containing
     the number of microseconds based on the input string and the
     format string."""
@@ -545,7 +546,7 @@ def _strptime(data_string: str, format: str = "%a %b %d %H:%M:%S %Y") -> Tuple[T
     if weekday is None:
         weekday = datetime_date(year, month, day).weekday()
     # Add timezone info
-    tzname = found_dict.get("Z")
+    tzname: str = found_dict.get("Z")
 
     if leap_year_fix:
         # the caller didn't supply a year but asked for Feb 29th. We couldn't
@@ -577,4 +578,4 @@ def _strptime_datetime(cls: Type[T], data_string: str, format: str = "%a %b %d %
             tz = datetime_timezone(tzdelta)
         args += (tz,)
 
-    return cls(*args)
+    return cls(*args)  # type: ignore [call-arg]
