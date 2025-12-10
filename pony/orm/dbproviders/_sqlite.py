@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+import datetime, time
 
 from pony.orm import dbapiprovider
 from pony.orm.sqlbuilding import Value
