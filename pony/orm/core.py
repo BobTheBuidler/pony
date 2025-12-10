@@ -13,6 +13,7 @@ from collections import defaultdict
 from hashlib import md5
 from inspect import isgeneratorfunction
 from functools import wraps
+from typing import Any, Final, List, Optional, Tuple, final
 
 import pony
 from pony import options
@@ -306,6 +307,40 @@ class PrefetchContext(object):
                                     attr.py_type in self.entities_to_prefetch and not attr.is_collection))
             self.relations_to_prefetch_cache[entity] = result
         return result
+
+        
+@final
+class Local(localbase):
+    def __init__(local) -> None:
+        local.debug: bool = False
+        local.show_values: Optional[bool] = None
+        local.debug_stack: List[Tuple[bool, Optional[bool]]] = []
+        local.db2cache = {}
+        local.db_context_counter = 0
+        local.db_session: Optional["DBSessionContextManager"] = None
+        local.prefetch_context_stack: Final[List["PrefetchContext"]] = []
+        local.current_user: Any = None
+        local.perms_context: Any = None
+        local.user_groups_cache = {}
+        local.user_roles_cache: Final = defaultdict(dict)
+    @property
+    def prefetch_context(local) -> Optional["PrefetchContext"]:
+        if prefetch_context_stack := local.prefetch_context_stack:
+            return prefetch_context_stack[-1]
+        return None
+    def push_debug_state(local, debug: bool, show_values: Optional[bool]) -> None:
+        from pony.orm.core import suppress_debug_change
+      
+        local.debug_stack.append((local.debug, local.show_values))
+        if not suppress_debug_change:
+            local.debug = debug
+            local.show_values = show_values
+    def pop_debug_state(local) -> None:
+        local.debug, local.show_values = local.debug_stack.pop()
+
+
+local: Final = Local()
+
 
 def _get_caches():
     return list(sorted((cache for cache in local.db2cache.values()),
