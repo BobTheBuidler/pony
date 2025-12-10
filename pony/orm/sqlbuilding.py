@@ -5,7 +5,7 @@ from operator import attrgetter
 from decimal import Decimal
 from datetime import date, datetime, timedelta
 from binascii import hexlify
-from typing import Sequence, Union
+from typing import Any, List, Sequence, Tuple, Union
 
 from pony import options
 from pony.utils import datetime2timestamp, throw, is_ident
@@ -169,7 +169,7 @@ class SQLBuilder(object):
     indent_spaces = " " * 4
     least_func_name = 'least'
     greatest_func_name = 'greatest'
-    def __init__(builder, provider, ast):
+    def __init__(builder, provider, ast: Sequence[str]) -> None:
         builder.provider = provider
         builder.quote_name = provider.quote_name
         builder.paramstyle = paramstyle = provider.paramstyle
@@ -198,7 +198,7 @@ class SQLBuilder(object):
         else: throw(NotImplementedError, paramstyle)
         builder.params = params
         builder.adapter = adapter
-    def __call__(builder, ast):
+    def __call__(builder, ast: Sequence[str]) -> Any:
         if isinstance(ast, str):
             throw(AstError, 'An SQL AST list was expected. Got string: %r' % ast)
         symbol = ast[0]
@@ -218,17 +218,17 @@ class SQLBuilder(object):
 ##            else:
 ##                del traceback
 ##                raise
-    def INSERT(builder, table_name, columns, values, returning=None):
+    def INSERT(builder, table_name: str, columns, values, returning=None) -> List[str]:
         return [ 'INSERT INTO ', builder.quote_name(table_name), ' (',
                  join(', ', [builder.quote_name(column) for column in columns ]),
-                 ') VALUES (', join(', ', [builder(value) for value in values]), ')' ]
-    def DEFAULT(builder):
+                 ') VALUES (', join(', ', list(map(builder, values))), ')' ]
+    def DEFAULT(builder) -> Literal["DEFAULT"]:
         return 'DEFAULT'
-    def UPDATE(builder, table_name, pairs, where=None):
+    def UPDATE(builder, table_name: str, pairs, where=None) -> List[str]:
         return [ 'UPDATE ', builder.quote_name(table_name), '\nSET ',
                  join(', ', [ (builder.quote_name(name), ' = ', builder(param)) for name, param in pairs]),
                  where and [ '\n', builder(where) ] or [] ]
-    def DELETE(builder, alias, from_ast, where=None):
+    def DELETE(builder, alias, from_ast, where=None) -> Tuple[str, str, str]:
         builder.indent += 1
         if alias is not None:
             assert isinstance(alias, str)
@@ -241,14 +241,14 @@ class SQLBuilder(object):
             if alias is not None: builder.suppress_aliases = True
             if not where: return 'DELETE ', builder(from_ast)
             return 'DELETE ', builder(from_ast), builder(where)
-    def _subquery(builder, *sections):
+    def _subquery(builder, *sections) -> List[str]:
         builder.indent += 1
         if not builder.inner_join_syntax:
             sections = move_conditions_from_inner_join_to_where(sections)
-        result = [ builder(s) for s in sections ]
+        result = list(map(builder, sections))
         builder.indent -= 1
         return result
-    def SELECT(builder, *sections):
+    def SELECT(builder, *sections) -> List[str]:
         prev_suppress_aliases = builder.suppress_aliases
         builder.suppress_aliases = False
         try:
@@ -273,19 +273,19 @@ class SQLBuilder(object):
         return 'NOT ', builder.EXISTS(*sections)
     @indentable
     def ALL(builder, *expr_list):
-        exprs = [ builder(e) for e in expr_list ]
+        exprs = list(map(builder, expr_list))
         return 'SELECT ', join(', ', exprs), '\n'
     @indentable
-    def DISTINCT(builder, *expr_list):
-        exprs = [ builder(e) for e in expr_list ]
+    def DISTINCT(builder, *expr_list) -> str:
+        exprs = list(map(builder, expr_list))
         return 'SELECT DISTINCT ', join(', ', exprs), '\n'
     @indentable
-    def AGGREGATES(builder, *expr_list):
-        exprs = [ builder(e) for e in expr_list ]
+    def AGGREGATES(builder, *expr_list) -> str:
+        exprs = list(map(builder, expr_list))
         return 'SELECT ', join(', ', exprs), '\n'
     def AS(builder, expr, alias):
         return builder(expr), ' AS ', builder.quote_name(alias)
-    def compound_name(builder, name_parts):
+    def compound_name(builder, name_parts) -> str:
         return '.'.join(p and builder.quote_name(p) or '' for p in name_parts)
     def sql_join(builder, join_type, sources):
         indent = builder.indent_spaces * (builder.indent-1)
@@ -345,7 +345,7 @@ class SQLBuilder(object):
         return result
     @indentable
     def GROUP_BY(builder, *expr_list):
-        exprs = [ builder(e) for e in expr_list ]
+        exprs = list(map(builder, expr_list))
         return 'GROUP BY ', join(', ', exprs), '\n'
     @indentable
     def UNION(builder, kind, *sections):
