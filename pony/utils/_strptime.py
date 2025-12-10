@@ -116,10 +116,11 @@ class LocaleTime:
         # values within the format string is very important; it eliminates
         # possible ambiguity for what something represents.
         time_tuple = time.struct_time((1999,3,17,22,44,55,2,76,0))
-        date_time = [None, None, None]
-        date_time[0] = time.strftime("%c", time_tuple).lower()
-        date_time[1] = time.strftime("%x", time_tuple).lower()
-        date_time[2] = time.strftime("%X", time_tuple).lower()
+        date_time = [
+            time.strftime("%c", time_tuple).lower(),
+            time.strftime("%x", time_tuple).lower(),
+            time.strftime("%X", time_tuple).lower()
+        ]
         replacement_pairs = [('%', '%%'), (self.f_weekday[2], '%A'),
                     (self.f_month[3], '%B'), (self.a_weekday[2], '%a'),
                     (self.a_month[3], '%b'), (self.am_pm[1], '%p'),
@@ -305,7 +306,7 @@ def _calc_julian_from_V(iso_year: int, iso_week: int, iso_weekday: int) -> Tuple
     return iso_year, ordinal
 
 
-def _strptime(data_string: str, format: str = "%a %b %d %H:%M:%S %Y"):
+def _strptime(data_string: str, format: str = "%a %b %d %H:%M:%S %Y") -> Tuple[Tuple[int, int, int, int, int, int, int, int, int, str, int], int, int]:
     """Return a 2-tuple consisting of a time struct and an int containing
     the number of microseconds based on the input string and the
     format string."""
@@ -351,7 +352,8 @@ def _strptime(data_string: str, format: str = "%a %b %d %H:%M:%S %Y"):
         raise ValueError("unconverted data remains: %s" %
                           data_string[found.end():])
 
-    iso_year = year = None
+    iso_year: Optional[int] = None
+    year: Optional[int] = None
     month = day = 1
     hour = minute = second = fraction = 0
     tz = -1
