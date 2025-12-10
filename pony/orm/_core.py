@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
 
+from pony.utils import throw
+
 if TYPE_CHECKING:
   from pony.orm.core import EntityMeta
 
