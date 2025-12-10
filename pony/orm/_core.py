@@ -231,8 +231,8 @@ def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # 
     obj_vals: dict = obj._vals_  # type: ignore [type-arg]
     obj_dbvals: dict = obj._dbvals_  # type: ignore [type-arg]
   
-    rbits = obj._rbits_
-    wbits = obj._wbits_
+    rbits = obj._rbits_  # type: ignore [attr-defined, has-type]
+    wbits = obj._wbits_  # type: ignore [attr-defined, has-type]
     for attr, new_dbval in list(avdict.items()):
         assert attr.pk_offset is None
         assert new_dbval is not NOT_LOADED
@@ -255,7 +255,7 @@ def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # 
     for attr, new_val in list(new_vals.items()):
         new_dbval = new_dbvals[attr]
         old_dbval = obj_dbvals.get(attr, NOT_LOADED)
-        bit = obj._bits_except_volatile_[attr]
+        bit = obj._bits_except_volatile_[attr]  # type: ignore [attr-defined]
         if rbits & bit:
             from pony.orm.core import UnrepeatableReadError
             errormsg = 'Please contact PonyORM developers so they can ' \
@@ -276,7 +276,7 @@ def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # 
             if old_val != new_val:
                 cache.db_update_simple_index(obj, attr, old_val, new_val)
 
-    for attrs in obj._composite_keys_:
+    for attrs in obj._composite_keys_:  # type: ignore [attr-defined]
         if any(attr in new_vals for attr in attrs):
             key_vals = list(map(obj_vals.get, attrs))  # In Python 2 var name leaks into the function scope!
             prev_key_vals = tuple(key_vals)
