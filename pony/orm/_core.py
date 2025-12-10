@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 @final
 class Local(localbase):
-    def __init__(local):
+    def __init__(local) -> None:
         local.debug = False
         local.show_values = None
         local.debug_stack = []
@@ -22,16 +22,16 @@ class Local(localbase):
         local.user_groups_cache = {}
         local.user_roles_cache = defaultdict(dict)
     @property
-    def prefetch_context(local):
+    def prefetch_context(local):  # type: ignore [no-untyped-def]
         if local.prefetch_context_stack:
             return local.prefetch_context_stack[-1]
         return None
-    def push_debug_state(local, debug, show_values):
+    def push_debug_state(local, debug, show_values) -> None:  # type: ignore [no-untyped-def]
         local.debug_stack.append((local.debug, local.show_values))
         if not suppress_debug_change:
             local.debug = debug
             local.show_values = show_values
-    def pop_debug_state(local):
+    def pop_debug_state(local) -> None:  # type: ignore [no-untyped-def]
         local.debug, local.show_values = local.debug_stack.pop()
 
 
@@ -39,13 +39,15 @@ local: Final = Local()
 
 
 class NotLoadedValueType(object):
-    def __repr__(self): return 'NOT_LOADED'
+    def __repr__(self) -> str:
+        return 'NOT_LOADED'
 
 NOT_LOADED: Final = NotLoadedValueType()
 
 
 class DefaultValueType(object):
-    def __repr__(self): return 'DEFAULT'
+    def __repr__(self) -> str:
+        return 'DEFAULT'
 
 DEFAULT: Final = DefaultValueType()
 
@@ -80,7 +82,7 @@ def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[t
     return real_entity_subclass, pkval, avdict
 
 
-def _get_from_identity_map_(
+def _get_from_identity_map_(  # type: ignore [no-untyped-def]
     entity: "EntityMeta",
     pkval: Any,
     status: str,
@@ -161,7 +163,7 @@ def _get_from_identity_map_(
     return obj
 
 
-def _get_by_raw_pkval_(
+def _get_by_raw_pkval_(  # type: ignore [no-untyped-def]
     entity: "EntityMeta",
     raw_pkval: Any,
     for_update: bool = False,
