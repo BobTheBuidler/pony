@@ -19,8 +19,8 @@ class Local(localbase):
         local.db_context_counter = 0
         local.db_session = None
         local.prefetch_context_stack: Final[List["PrefetchContext"]] = []
-        local.current_user = None
-        local.perms_context = None
+        local.current_user: Any = None
+        local.perms_context: Any = None
         local.user_groups_cache = {}
         local.user_roles_cache: Final = defaultdict(dict)
     @property
@@ -28,7 +28,7 @@ class Local(localbase):
         if prefetch_context_stack := local.prefetch_context_stack:
             return prefetch_context_stack[-1]
         return None
-    def push_debug_state(local, debug, show_values) -> None:  # type: ignore [no-untyped-def]
+    def push_debug_state(local, debug: bool, show_values: Optional[bool]) -> None:
         from pony.orm.core import suppress_debug_change
       
         local.debug_stack.append((local.debug, local.show_values))
