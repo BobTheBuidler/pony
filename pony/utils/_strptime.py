@@ -67,7 +67,7 @@ class LocaleTime:
         since changing the timezone is worthless without that call.
 
         """
-        self.lang: = _getlang()
+        self.lang = _getlang()
         self.__calc_weekday()
         self.__calc_month()
         self.__calc_am_pm()
