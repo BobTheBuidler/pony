@@ -1,10 +1,40 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-  from pony.orm.core import Entity
+  from pony.orm.core import EntityMeta
+
+def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[type, tuple, dict]:  # type: ignore [type-arg]
+    discr_attr = entity._discriminator_attr_
+    if not discr_attr:
+        discr_value = None
+        real_entity_subclass = entity
+    else:
+        discr_offset = attr_offsets[discr_attr][0]
+        discr_value = discr_attr.validate(row[discr_offset], None, entity, from_db=True)
+        real_entity_subclass = discr_attr.code2cls[discr_value]
+        discr_value = real_entity_subclass._discriminator_  # To convert str to str in Python 2.x
+
+    database = entity._database_
+    cache = local.db2cache[database]
+
+    avdict = {}
+    for attr in real_entity_subclass._attrs_:
+        offsets = attr_offsets.get(attr)
+        if offsets is None:
+            continue
+        if attr.is_discriminator:
+            avdict[attr] = discr_value
+        else:
+            avdict[attr] = attr.parse_value(row, offsets, cache.dbvals_deduplication_cache)
+
+    pkval = tuple(map(avdict.pop, entity._pk_attrs_))
+    assert None not in pkval
+    if not entity._pk_is_composite_: pkval = pkval[0]
+    return real_entity_subclass, pkval, avdict
+
 
 def _get_from_identity_map_(
-    entity: "Entity",
+    entity: "EntityMeta",
     pkval: Any,
     status: str,
     for_update: bool = False,
@@ -85,7 +115,7 @@ def _get_from_identity_map_(
 
 
 def _get_by_raw_pkval_(
-    entity: "Entity",
+    entity: "EntityMeta",
     raw_pkval: Any,
     for_update: bool = False,
     from_db: bool = True,
