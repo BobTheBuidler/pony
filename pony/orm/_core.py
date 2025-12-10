@@ -89,14 +89,14 @@ def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[t
 new_instance_id_counter: Final = itertools.count(1)
 
 
-def _get_from_identity_map_(  # type: ignore [no-untyped-def]
+def _get_from_identity_map_(
     entity: "EntityMeta",
     pkval: Any,
     status: str,
     for_update: bool = False,
-    undo_funcs=None,
-    obj_to_init=None,
-):
+    undo_funcs: Any = None,
+    obj_to_init: Any = None,
+) -> Any:
     cache = entity._database_._get_cache()  # type: ignore [union-attr]
     pk_attrs = entity._pk_attrs_
     cache_index = cache.indexes[pk_attrs]
@@ -175,13 +175,13 @@ def _get_from_identity_map_(  # type: ignore [no-untyped-def]
     return obj
 
 
-def _get_by_raw_pkval_(  # type: ignore [no-untyped-def]
+def _get_by_raw_pkval_(
     entity: "EntityMeta",
     raw_pkval: Any,
     for_update: bool = False,
     from_db: bool = True,
     seed: bool = True,
-):
+) -> Any:
     i = 0
     pkval = []
     for attr in entity._pk_attrs_:
