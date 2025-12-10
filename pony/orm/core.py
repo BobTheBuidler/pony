@@ -4320,8 +4320,8 @@ class EntityMeta(type):
             obj._rbits_ |= rbits & ~wbits
             
     # I moved this func to _core.py to compile it
-    def _parse_row_(entity, *args):
-        return _parse_row_(entity, *args)
+    def _parse_row_(entity, *args, **kwargs):
+        return _parse_row_(entity, *args, **kwargs)
     
     def _load_many_(entity, objects):
         database = entity._database_
@@ -4376,10 +4376,10 @@ class EntityMeta(type):
         return Query(code_key, inner_expr, globals, locals, cells)
         
     # I moved these funcs to _core.py to compile it
-    def _get_from_identity_map_(entity, *args):
-        return _get_from_identity_map_(entity, *args)
-    def _get_by_raw_pkval_(entity, *arge):
-        return _get_by_raw_pkval_(entity, *args)
+    def _get_from_identity_map_(entity, *args, **kwargs):
+        return _get_from_identity_map_(entity, *args, **kwargs)
+    def _get_by_raw_pkval_(entity, *args, **kwargs):
+        return _get_by_raw_pkval_(entity, *args, **kwargs)
     
     def _get_propagation_mixin_(entity):
         mixin = entity._propagation_mixin_
