@@ -1,12 +1,12 @@
 # mypy: disable-error-code="var-annotated"
 import itertools
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Final, Tuple, final
+from typing import TYPE_CHECKING, Any, Final, List, Tuple, final
 
 from pony.utils import localbase, throw
 
 if TYPE_CHECKING:
-  from pony.orm.core import EntityMeta
+  from pony.orm.core import EntityMeta, PrefetchContext
 
 
 @final
@@ -18,13 +18,13 @@ class Local(localbase):
         local.db2cache = {}
         local.db_context_counter = 0
         local.db_session = None
-        local.prefetch_context_stack = []
+        local.prefetch_context_stack: Final]List["PrefetchContext"]] = []
         local.current_user = None
         local.perms_context = None
         local.user_groups_cache = {}
-        local.user_roles_cache = defaultdict(dict)
+        local.user_roles_cache: Final = defaultdict(dict)
     @property
-    def prefetch_context(local) -> Any:  # type: ignore [no-untyped-def]
+    def prefetch_context(local) -> "PrefetchContext":
         if local.prefetch_context_stack:
             return local.prefetch_context_stack[-1]
         return None
