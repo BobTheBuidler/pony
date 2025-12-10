@@ -2,11 +2,12 @@
 import re
 from datetime import datetime
 from time import strptime
+from typing import Final, List
 
 _CACHE_MAXSIZE: Final = 10_000
 _TIMESTAMP_TO_DATETIME: Final[Dict[str, datetime]] = {}
 
-def current_timestamp():
+def current_timestamp() -> str:
     return datetime2timestamp(datetime.now())
 
 def datetime2timestamp(d: datetime) -> str:
@@ -47,7 +48,7 @@ _name_parts_re: Final = re.compile(r'''
         |   _+                      # underscores
         ''', re.VERBOSE)
 
-def split_name(name: str) -> str:
+def split_name(name: str) -> List[str]:
     "split_name('Some_FUNNYName') -> ['Some', 'FUNNY', 'Name']"
     if not _ident_re.match(name):
         raise ValueError('Name is not correct Python identifier')
