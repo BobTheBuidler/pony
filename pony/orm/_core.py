@@ -25,8 +25,8 @@ class Local(localbase):
         local.user_roles_cache: Final = defaultdict(dict)
     @property
     def prefetch_context(local) -> "PrefetchContext":
-        if local.prefetch_context_stack:
-            return local.prefetch_context_stack[-1]
+        if prefetch_context_stack := local.prefetch_context_stack:
+            return prefetch_context_stack[-1]
         return None
     def push_debug_state(local, debug, show_values) -> None:  # type: ignore [no-untyped-def]
         from pony.orm.core import suppress_debug_change
