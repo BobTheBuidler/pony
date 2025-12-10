@@ -346,7 +346,7 @@ def _strptime(data_string: str, format: str = "%a %b %d %H:%M:%S %Y") -> Tuple[T
             except IndexError:
                 raise ValueError("stray %% in format '%s'" % format) from None
             _regex_cache[format] = format_regex
-    found = format_regex.match(data_string)  # type: ignore [union-attr]
+    found = format_regex.match(data_string)
     if not found:
         raise ValueError("time data %r does not match format %r" %
                          (data_string, format))
@@ -547,7 +547,7 @@ def _strptime(data_string: str, format: str = "%a %b %d %H:%M:%S %Y") -> Tuple[T
     if weekday is None:
         weekday = datetime_date(year, month, day).weekday()
     # Add timezone info
-    tzname: str = found_dict.get("Z")
+    tzname: Optional[str] = found_dict.get("Z")
 
     if leap_year_fix:
         # the caller didn't supply a year but asked for Feb 29th. We couldn't
