@@ -1,4 +1,5 @@
 import datetime, time
+from typing import List, Union
 
 from pony.orm import dbapiprovider
 from pony.orm.sqlbuilding import Value
@@ -6,19 +7,19 @@ from pony.utils import datetime2timestamp, timestamp2datetime
 
 
 class SQLiteValue(Value):
-    __slots__ = []
+    __slots__: List[str] = []
     def __str__(self) -> str:
         value = self.value
         if isinstance(value, datetime.datetime):
-            return self.quote_str(datetime2timestamp(value))
+            return self.quote_str(datetime2timestamp(value))  # type: ignore [no-untyped-call]
         if isinstance(value, datetime.date):
-            return self.quote_str(str(value))
+            return self.quote_str(str(value))  # type: ignore [no-untyped-call]
         if isinstance(value, datetime.timedelta):
             return repr(value.total_seconds() / (24 * 60 * 60))
         return Value.__str__(self)
 
 class SQLiteDateConverter(dbapiprovider.DateConverter):
-    def sql2py(converter, val: str) -> datetime.date:
+    def sql2py(converter, val: str) -> Union[datetime.date, str]:
         try:
             time_tuple = time.strptime(val[:10], '%Y-%m-%d')
             return datetime.date(*time_tuple[:3])
