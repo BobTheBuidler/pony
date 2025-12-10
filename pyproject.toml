@@ -1,2 +1,2 @@
 [build-system]
-requires = ["setuptools", "wheel", "setuptools_scm", "mypy[mypyc]==1.19.0"]
+requires = ["setuptools", "wheel", "setuptools_scm", "mypy[mypyc]>=1.14.1,<1.19.1"]
