@@ -16,7 +16,7 @@ from functools import wraps
 
 import pony
 from pony import options
-from pony.orm._core import _get_by_raw_pkval_, _get_from_identity_map_
+from pony.orm._core import _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
@@ -4321,34 +4321,10 @@ class EntityMeta(type):
                 rbits = builtins.sum(obj._bits_except_volatile_.get(attr, 0) for attr in attrs)
                 rbits_dict[obj.__class__] = rbits
             obj._rbits_ |= rbits & ~wbits
-    def _parse_row_(entity, row, attr_offsets):
-        discr_attr = entity._discriminator_attr_
-        if not discr_attr:
-            discr_value = None
-            real_entity_subclass = entity
-        else:
-            discr_offset = attr_offsets[discr_attr][0]
-            discr_value = discr_attr.validate(row[discr_offset], None, entity, from_db=True)
-            real_entity_subclass = discr_attr.code2cls[discr_value]
-            discr_value = real_entity_subclass._discriminator_  # To convert str to str in Python 2.x
-
-        database = entity._database_
-        cache = local.db2cache[database]
-
-        avdict = {}
-        for attr in real_entity_subclass._attrs_:
-            offsets = attr_offsets.get(attr)
-            if offsets is None:
-                continue
-            if attr.is_discriminator:
-                avdict[attr] = discr_value
-            else:
-                avdict[attr] = attr.parse_value(row, offsets, cache.dbvals_deduplication_cache)
-
-        pkval = tuple(avdict.pop(attr) for attr in entity._pk_attrs_)
-        assert None not in pkval
-        if not entity._pk_is_composite_: pkval = pkval[0]
-        return real_entity_subclass, pkval, avdict
+            
+    # I moved this func to _core.py to compile it
+    _parse_row_ = _parse_row_
+    
     def _load_many_(entity, objects):
         database = entity._database_
         cache = database._get_cache()
