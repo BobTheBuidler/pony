@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 import re
 from datetime import datetime, date, time, timedelta
-from typing import Dict, Final, List, Optional, Tuple, Type
+from typing import Dict, Final, List, Optional, Tuple, Type, Union, final
 
 from pony.utils import is_ident
 
@@ -211,8 +211,8 @@ def str2timedelta(s: str) -> timedelta:
         s, fractional = s.split('.')
         microseconds = int((fractional + '000000')[:6])
     else: microseconds = 0
-    h, m, s = map(int, s.split(':'))
-    td = timedelta(hours=abs(h), minutes=m, seconds=s, microseconds=microseconds)
+    h, m, s = s.split(':')
+    td = timedelta(hours=abs(int(h)), minutes=int(m), seconds=int(s), microseconds=microseconds)
     return -td if negative else td
 
 def timedelta2str(td: timedelta) -> str:
@@ -244,7 +244,7 @@ converters: Final = {
     datetime: (str2datetime, str, 'Must be correct date & time'),
     }
 
-def str2py(value, type):
+def str2py(value, type):  # type: ignore [no-untyped-def]
     if type is None or not isinstance(value, str): return value
     if isinstance(type, tuple): str2py, py2str, err_msg = type
     else: str2py, py2str, err_msg = converters.get(type, (type, str, None))
