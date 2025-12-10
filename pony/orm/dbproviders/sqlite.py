@@ -16,6 +16,7 @@ from pony.orm.ormtypes import Json, TrackedArray
 from pony.orm.sqltranslation import SQLTranslator, StringExprMonad
 from pony.orm.sqlbuilding import SQLBuilder, Value, join, make_unary_func
 from pony.orm.dbapiprovider import DBAPIProvider, Pool, wrap_dbapi_exceptions
+from pony.orm.dbapiprovider import SQLiteValue, SQLiteDateConverter, SQLiteDatetimeConverter, SQLiteTimeConverter, SQLiteTimedeltaConverter
 from pony.utils import datetime2timestamp, timestamp2datetime, absolutize_path, localbase, throw, reraise, \
     cut_traceback_depth
 
@@ -51,18 +52,6 @@ class SQLiteTranslator(SQLTranslator):
 
     StringMixin_UPPER = make_overriden_string_func('PY_UPPER')
     StringMixin_LOWER = make_overriden_string_func('PY_LOWER')
-
-class SQLiteValue(Value):
-    __slots__ = []
-    def __str__(self):
-        value = self.value
-        if isinstance(value, datetime.datetime):
-            return self.quote_str(datetime2timestamp(value))
-        if isinstance(value, datetime.date):
-            return self.quote_str(str(value))
-        if isinstance(value, datetime.timedelta):
-            return repr(value.total_seconds() / (24 * 60 * 60))
-        return Value.__str__(self)
 
 class SQLiteBuilder(SQLBuilder):
     dialect = 'SQLite'
@@ -227,38 +216,6 @@ class SQLiteDecimalConverter(dbapiprovider.DecimalConverter):
                 throw(ValueError, 'Cannot store %s Decimal value in database' % val)
             val = val.quantize(exp)
         return str(val)
-
-class SQLiteDateConverter(dbapiprovider.DateConverter):
-    def sql2py(converter, val):
-        try:
-            time_tuple = time.strptime(val[:10], '%Y-%m-%d')
-            return datetime.date(*time_tuple[:3])
-        except: return val
-    def py2sql(converter, val):
-        return val.strftime('%Y-%m-%d')
-
-class SQLiteTimeConverter(dbapiprovider.TimeConverter):
-    def sql2py(converter, val):
-        try:
-            if len(val) <= 8: dt = datetime.strptime(val, '%H:%M:%S')
-            else: dt = datetime.strptime(val, '%H:%M:%S.%f')
-            return dt.datetime.time()
-        except: return val
-    def py2sql(converter, val):
-        return val.isoformat()
-
-class SQLiteTimedeltaConverter(dbapiprovider.TimedeltaConverter):
-    def sql2py(converter, val):
-        return datetime.timedelta(days=val)
-    def py2sql(converter, val):
-        return val.days + (val.seconds + val.microseconds / 1000000.0) / 86400.0
-
-class SQLiteDatetimeConverter(dbapiprovider.DatetimeConverter):
-    def sql2py(converter, val):
-        try: return timestamp2datetime(val)
-        except: return val
-    def py2sql(converter, val):
-        return datetime2timestamp(val)
 
 class SQLiteJsonConverter(dbapiprovider.JsonConverter):
     json_kwargs = {'separators': (',', ':'), 'sort_keys': True, 'ensure_ascii': False}
