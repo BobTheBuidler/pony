@@ -269,7 +269,7 @@ _cache_lock: Final = _thread_allocate_lock()
 # first!
 _TimeRE_cache = TimeRE()
 _CACHE_MAX_SIZE: Final = 5 # Max number of regexes stored in _regex_cache
-_regex_cache: Final[Dict[str, re.Match[str]]] = {}
+_regex_cache: Final[Dict[str, re.Pattern[str]]] = {}
 
 def _calc_julian_from_U_or_W(year: int, week_of_year: int, day_of_week: int, week_starts_Mon: bool) -> int:
     """Calculate the Julian day based on the year, week of the year, and day of
@@ -346,7 +346,7 @@ def _strptime(data_string: str, format: str = "%a %b %d %H:%M:%S %Y") -> Tuple[T
             except IndexError:
                 raise ValueError("stray %% in format '%s'" % format) from None
             _regex_cache[format] = format_regex
-    found = format_regex.match(data_string)  # type: ignore =union-attr]
+    found = format_regex.match(data_string)  # type: ignore [union-attr]
     if not found:
         raise ValueError("time data %r does not match format %r" %
                          (data_string, format))
@@ -571,10 +571,10 @@ def _strptime_datetime(cls: Type[T], data_string: str, format: str = "%a %b %d %
     tt, fraction, gmtoff_fraction = _strptime(data_string, format)
     tzname, gmtoff = tt[-2:]
     if gmtoff is None:
-        return cls(*tt[:6], fraction)  # type: ignore [misc]
+        return cls(*tt[:6], fraction)  # type: ignore [call-arg]
     tzdelta = datetime_timedelta(seconds=gmtoff, microseconds=gmtoff_fraction)
     if tzname:
         tz = datetime_timezone(tzdelta, tzname)
     else:
         tz = datetime_timezone(tzdelta)
-    return cls(*tt[:6], fraction, tz)  # type: ignore [misc]
+    return cls(*tt[:6], fraction, tz)  # type: ignore [call-arg]
