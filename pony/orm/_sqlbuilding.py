@@ -43,4 +43,4 @@ class Value(object):
         return '%s(%r)' % (self.__class__.__name__, self.value)
     def quote_str(self, s: str) -> str:
         if self.paramstyle in ('format', 'pyformat'): s = s.replace('%', '%%')
-        return f"'{s.replace("'", "''")}'"
+        return f"'%s'" % s.replace("'", "''")
