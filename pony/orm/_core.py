@@ -3,7 +3,6 @@ import itertools
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Final, Tuple, final
 
-from pony.orm.dbapiprovider import TransactionError
 from pony.utils import localbase, throw
 
 if TYPE_CHECKING:
@@ -106,7 +105,7 @@ def _get_from_identity_map_(  # type: ignore [no-untyped-def]
 
     if obj is None: pass
     elif status == 'created':
-        from pony.orm.dbapiprovider import CacheIndexError
+        from pony.orm.core import CacheIndexError
 
         if entity._pk_is_composite_:
             pkval = ', '.join(map(str, pkval))        
@@ -115,7 +114,7 @@ def _get_from_identity_map_(  # type: ignore [no-untyped-def]
     elif obj.__class__ is entity: pass
     elif issubclass(obj.__class__, entity): pass
     elif not issubclass(entity, obj.__class__):
-        from pony.orm.dbapiprovider import TransactionError
+        from pony.orm.core import TransactionError
         
         throw(TransactionError,
         'Unexpected class change from %s to %s for object with primary key %r' % (obj.__class__, entity, obj._pkval_))
