@@ -24,7 +24,7 @@ class Local(localbase):
         local.user_groups_cache = {}
         local.user_roles_cache: Final = defaultdict(dict)
     @property
-    def prefetch_context(local) -> "PrefetchContext":
+    def prefetch_context(local) -> Optional["PrefetchContext"]:
         if prefetch_context_stack := local.prefetch_context_stack:
             return prefetch_context_stack[-1]
         return None
