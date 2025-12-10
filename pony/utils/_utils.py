@@ -2,7 +2,7 @@
 import re
 from datetime import datetime
 from time import strptime
-from typing import Final, List
+from typing import Dict, Final, List
 
 _CACHE_MAXSIZE: Final = 10_000
 _TIMESTAMP_TO_DATETIME: Final[Dict[str, datetime]] = {}
