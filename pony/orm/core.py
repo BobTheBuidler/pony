@@ -17,7 +17,7 @@ from typing import Any, Final, List, Optional, Tuple, final
 
 import pony
 from pony import options
-from pony.orm._core import DEFAULT, NOT_LOADED, new_instance_id_counter, local, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
+from pony.orm._core import DEFAULT, NOT_LOADED, new_instance_id_counter, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
