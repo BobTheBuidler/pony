@@ -15,7 +15,7 @@ import pony
 from pony import options
 
 from pony.thirdparty.decorator import decorator as _decorator
-from pony.utils._utils import current_timestamp, datetime2timestamp, timestamp2datetime
+from pony.utils._utils import camelcase_name, current_timestamp, datetime2timestamp, is_ident, lowercase_name, mixedcase_name, split_name, timestamp2datetime, uppercase_name
 
 if pony.MODE.startswith('GAE-'): localbase = object
 else: from threading import local as localbase
@@ -163,47 +163,6 @@ def get_lambda_args(func):
 def error_method(*args, **kwargs):
     raise TypeError()
 
-_ident_re = re.compile(r'^[A-Za-z_]\w*\Z')
-
-# is_ident = ident_re.match
-def is_ident(string: str) -> bool:
-    'is_ident(string) -> bool'
-    return bool(_ident_re.match(string))
-
-_name_parts_re = re.compile(r'''
-            [A-Z][A-Z0-9]+(?![a-z]) # ACRONYM
-        |   [A-Z][a-z]*             # Capitalized or single capital
-        |   [a-z]+                  # all-lowercase
-        |   [0-9]+                  # numbers
-        |   _+                      # underscores
-        ''', re.VERBOSE)
-
-def split_name(name):
-    "split_name('Some_FUNNYName') -> ['Some', 'FUNNY', 'Name']"
-    if not _ident_re.match(name):
-        raise ValueError('Name is not correct Python identifier')
-    list = _name_parts_re.findall(name)
-    if not (list[0].strip('_') and list[-1].strip('_')):
-        raise ValueError('Name must not starting or ending with underscores')
-    return [ s for s in list if s.strip('_') ]
-
-def uppercase_name(name):
-    "uppercase_name('Some_FUNNYName') -> 'SOME_FUNNY_NAME'"
-    return '_'.join(s.upper() for s in split_name(name))
-
-def lowercase_name(name):
-    "uppercase_name('Some_FUNNYName') -> 'some_funny_name'"
-    return '_'.join(s.lower() for s in split_name(name))
-
-def camelcase_name(name):
-    "uppercase_name('Some_FUNNYName') -> 'SomeFunnyName'"
-    return ''.join(s.capitalize() for s in split_name(name))
-
-def mixedcase_name(name):
-    "mixedcase_name('Some_FUNNYName') -> 'someFunnyName'"
-    list = split_name(name)
-    return list[0].lower() + ''.join(s.capitalize() for s in list[1:])
-
 def import_module(name):
     "import_module('a.b.c') -> <module a.b.c>"
     mod = sys.modules.get(name)
@@ -230,19 +189,6 @@ def absolutize_path(filename, frame_depth):
             raise EnvironmentError('Unexpected module filename, which is not absolute file path: %r' % code_filename)
     code_path = os.path.dirname(code_filename)
     return os.path.join(code_path, filename)
-
-def current_timestamp():
-    return datetime2timestamp(datetime.now())
-
-def datetime2timestamp(d):
-    result = d.isoformat(' ')
-    if len(result) == 19: return result + '.000000'
-    return result
-
-def timestamp2datetime(t):
-    time_tuple = strptime(t[:19], '%Y-%m-%d %H:%M:%S')
-    microseconds = int((t[20:26] + '000000')[:6])
-    return datetime(*(time_tuple[:6] + (microseconds,)))
 
 expr1_re = re.compile(r'''
         ([A-Za-z_]\w*)  # identifier (group 1)
@@ -299,7 +245,7 @@ def parse_expr(s, pos=0):
                     if not counter: z += 1; break
         else: assert False  # pragma: no cover
 
-def tostring(x):
+def tostring(x: Any) -> str:
     if isinstance(x, str): return x
     if hasattr(x, '__unicode__'):
         try: return str(x)
