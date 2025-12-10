@@ -21,7 +21,7 @@ class SQLiteValue(Value):
 class SQLiteDateConverter(dbapiprovider.DateConverter):
     def sql2py(converter, val: str) -> Union[datetime.date, str]:
         try:
-            time_tuple = time.strptime(val[:10], '%Y-%m-%d')  # type: ignore [attr-defined]
+            time_tuple = time.strptime(val[:10], '%Y-%m-%d')
             return datetime.date(*time_tuple[:3])
         except: return val
     def py2sql(converter, val: datetime.date) -> str:
@@ -32,7 +32,7 @@ class SQLiteTimeConverter(dbapiprovider.TimeConverter):
         try:
             if len(val) <= 8: dt = datetime.strptime(val, '%H:%M:%S')  # type: ignore [attr-defined]
             else: dt = datetime.strptime(val, '%H:%M:%S.%f')  # type: ignore [attr-defined]
-            return dt.datetime.time()
+            return cast(datetime.time, dt.datetime.time())
         except: return val
     def py2sql(converter, val: datetime.time) -> str:
         return val.isoformat()
