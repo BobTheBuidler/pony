@@ -28,6 +28,8 @@ class Local(localbase):
             return local.prefetch_context_stack[-1]
         return None
     def push_debug_state(local, debug, show_values) -> None:  # type: ignore [no-untyped-def]
+        from pony.orm.core import suppress_debug_change
+      
         local.debug_stack.append((local.debug, local.show_values))
         if not suppress_debug_change:
             local.debug = debug
