@@ -107,7 +107,14 @@ package_data = {
     'pony.orm.tests': ['queries.txt']
 }
 
-ext_modules = mypycify(["pony/converting.py", "--strict", "--follow-imports=silent"])
+mypyc_files = [
+    "pony/converting.py",
+    "pony/orm/sqlsymbols.py",
+    "pony/py23compat.py",
+    "pony/utils/properties.py",
+]
+
+ext_modules = mypycify([*mypyc_files, "--strict", "--follow-imports=silent"])
 
 download_url = "http://pypi.python.org/pypi/pony/"
 
@@ -136,4 +143,5 @@ if __name__ == "__main__":
         test_suite='setup.test_suite',
         ext_modules=ext_modules,
     )
+
 
