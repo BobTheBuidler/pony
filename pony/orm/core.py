@@ -2028,7 +2028,7 @@ class Attribute(object):
             if attr.is_unique is not None:
                 throw(TypeError, "'unique' option cannot be set for PrimaryKey attribute ")
             attr.is_unique = True
-        attr.nullable: Optional[bool = kwargs.pop('nullable', None)
+        attr.nullable: Optional[bool] = kwargs.pop('nullable', None)
         attr.is_part_of_unique_index = attr.is_unique  # Also can be set to True later
         attr.is_pk = isinstance(attr, PrimaryKey)
         if attr.is_pk: attr.pk_offset = 0
