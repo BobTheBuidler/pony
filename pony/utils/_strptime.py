@@ -20,9 +20,11 @@ from datetime import (date as datetime_date,
                       timedelta as datetime_timedelta,
                       timezone as datetime_timezone)
 from _thread import allocate_lock as _thread_allocate_lock
-from typing import Optional
+from typing import Optional, Type, TypeVar
 
 __all__ = []
+
+T = TypeVar("T")
 
 def _getlang() -> Tuple[Optional[str], Optional[str]]:
     # Figure out what the current language is set to.
