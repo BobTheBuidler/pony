@@ -1,7 +1,8 @@
 from datetime import date, datetime, time, timedelta
 
 from pony.orm import dbapiprovider
-from pony.orm.sqlbuilding import SQLBuilder, Value, join, make_unary_func
+from pony.orm.sqlbuilding import Value
+from pony.utils import datetime2timestamp, timestamp2datetime
 
 
 class SQLiteValue(Value):
