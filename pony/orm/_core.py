@@ -38,6 +38,18 @@ class Local(localbase):
 local: Final = Local()
 
 
+class NotLoadedValueType(object):
+    def __repr__(self): return 'NOT_LOADED'
+
+NOT_LOADED: Final = NotLoadedValueType()
+
+
+class DefaultValueType(object):
+    def __repr__(self): return 'DEFAULT'
+
+DEFAULT: Final = DefaultValueType()
+
+
 def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[type, tuple, dict]:  # type: ignore [type-arg]
     discr_attr = entity._discriminator_attr_
     if not discr_attr:
