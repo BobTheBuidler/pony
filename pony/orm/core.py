@@ -17,7 +17,7 @@ from typing import Any, Final, List, Optional, Tuple, final
 
 import pony
 from pony import options
-from pony.orm._core import DEFAULT, NOT_LOADED, new_instance_id_counter, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
+from pony.orm._core import DEFAULT, NOT_LOADED, new_instance_id_counter, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
@@ -4804,70 +4804,11 @@ class Entity(object, metaclass=EntityMeta):
                 obj._save_pos_ = len(objects_to_save)
                 objects_to_save.append(obj)
                 cache.modified = True
+                
+    # I moved this func to _core.py to compile it
     def _db_set_(obj, avdict, unpickling=False):
-        assert obj._status_ not in created_or_deleted_statuses
-        cache = obj._session_cache_
-        assert cache is not None and cache.is_alive
-        cache.seeds[obj._pk_attrs_].discard(obj)
-        if not avdict: return
-
-        get_val = obj._vals_.get
-        get_dbval = obj._dbvals_.get
-        rbits = obj._rbits_
-        wbits = obj._wbits_
-        for attr, new_dbval in list(avdict.items()):
-            assert attr.pk_offset is None
-            assert new_dbval is not NOT_LOADED
-            old_dbval = get_dbval(attr, NOT_LOADED)
-            if old_dbval is not NOT_LOADED:
-                if unpickling or old_dbval == new_dbval or (
-                        not attr.reverse and attr.converters[0].dbvals_equal(old_dbval, new_dbval)):
-                    del avdict[attr]
-                    continue
-
-        if unpickling:
-            new_vals = avdict
-            new_dbvals = {attr: attr.converters[0].val2dbval(val, obj) if not attr.reverse else val
-                                for attr, val in avdict.items()}
-        else:
-            new_dbvals = avdict
-            new_vals = {attr: attr.converters[0].dbval2val(dbval, obj) if not attr.reverse else dbval
-                              for attr, dbval in avdict.items()}
-
-        for attr, new_val in list(new_vals.items()):
-            new_dbval = new_dbvals[attr]
-            old_dbval = get_dbval(attr, NOT_LOADED)
-            bit = obj._bits_except_volatile_[attr]
-            if rbits & bit:
-                errormsg = 'Please contact PonyORM developers so they can ' \
-                           'reproduce your error and fix a bug: support@ponyorm.org'
-                assert old_dbval is not NOT_LOADED, errormsg
-                throw(UnrepeatableReadError,
-                      'Value of %s.%s for %s was updated outside of current transaction (was: %r, now: %r)'
-                      % (obj.__class__.__name__, attr.name, obj, old_dbval, new_dbval))
-
-            if attr.reverse: attr.db_update_reverse(obj, old_dbval, new_dbval)
-            obj._dbvals_[attr] = new_dbval
-            if wbits & bit:
-                del new_vals[attr]
-
-        for attr, new_val in new_vals.items():
-            if attr.is_unique:
-                old_val = get_val(attr)
-                if old_val != new_val:
-                    cache.db_update_simple_index(obj, attr, old_val, new_val)
-
-        for attrs in obj._composite_keys_:
-            if any(attr in new_vals for attr in attrs):
-                key_vals = [ get_val(a) for a in attrs ]  # In Python 2 var name leaks into the function scope!
-                prev_key_vals = tuple(key_vals)
-                for i, attr in enumerate(attrs):
-                    if attr in new_vals: key_vals[i] = new_vals[attr]
-                new_key_vals = tuple(key_vals)
-                if prev_key_vals != new_key_vals:
-                    cache.db_update_composite_index(obj, attrs, prev_key_vals, new_key_vals)
-
-        obj._vals_.update(new_vals)
+        return _db_set_(obj, avdict, unpickling=unpickling)
+        
     def _delete_(obj, undo_funcs=None):
         status = obj._status_
         if status in del_statuses: return
