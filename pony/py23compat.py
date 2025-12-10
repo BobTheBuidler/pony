@@ -14,5 +14,5 @@ unicode = str
 buffer = bytes
 int_types = (int,)
 
-def cmp(a, b):
+def cmp(a, b): # type: ignore [no-untyped-def]
     return (a > b) - (a < b)
