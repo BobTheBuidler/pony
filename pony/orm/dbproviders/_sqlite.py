@@ -1,5 +1,5 @@
 import datetime, time
-from typing import List, Union
+from typing import List, Union, cast
 
 from pony.orm import dbapiprovider
 from pony.orm.sqlbuilding import Value
@@ -11,9 +11,9 @@ class SQLiteValue(Value):
     def __str__(self) -> str:
         value = self.value
         if isinstance(value, datetime.datetime):
-            return self.quote_str(datetime2timestamp(value))  # type: ignore [no-untyped-call]
+            return cast(str, self.quote_str(datetime2timestamp(value)))  # type: ignore [no-untyped-call]
         if isinstance(value, datetime.date):
-            return self.quote_str(str(value))  # type: ignore [no-untyped-call]
+            return cast(str, self.quote_str(str(value)))  # type: ignore [no-untyped-call]
         if isinstance(value, datetime.timedelta):
             return repr(value.total_seconds() / (24 * 60 * 60))
         return Value.__str__(self)
