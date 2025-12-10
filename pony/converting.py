@@ -185,16 +185,21 @@ def str2datetime(s: str) -> datetime:
     hh, mm, ss, mcs = _extract_time_parts(d)
     return datetime(int(year), int(month), int(day), hh, mm, ss, mcs)
 
-def _extract_time_parts(groupdict: Dict[str, int]) -> Tuple[int int, int, int]:
-    hh, mm, ss, am, pm = map(groupdict.get, ('hh', 'mm', 'ss', 'am', 'pm'))
+def _extract_time_parts(groupdict: Dict[str, Union[str, int]]) -> Tuple[int int, int, int]:
+    hh = groupdict.get('hh')
+    am = groupdict.get('am')
+    pm = groupdict.get('pm')
 
     if hh is None: hh, mm, ss = 12, 00, 00
-    elif am and hh == '12': hh = 0
-    elif pm and hh != '12': hh = int(hh) + 12
+    else:
+        mm = groupdict.get('mm')
+        ss = groupdict.get('ss')
+        if am and hh == '12': hh = 0
+        if pm and hh != '12': hh = int(hh) + 12
 
     if isinstance(ss, str) and '.' in ss:
         ss, mcs = ss.split('.', 1)
-        if len('mcs') < 6: mcs = (mcs + '000000')[:6]
+        if len(mcs) < 6: mcs = (mcs + '000000')[:6]
     else: mcs = 0
 
     return int(hh), int(mm or 0), int(ss or 0), int(mcs)
