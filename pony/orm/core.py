@@ -2062,7 +2062,7 @@ class Attribute(object):
         if column is not None:
             if columns is not None:
                 throw(TypeError, "Parameters 'column' and 'columns' cannot be specified simultaneously")
-            if not isinstance(attr.column, str):
+            if not isinstance(column, str):
                 throw(TypeError, "Parameter 'column' must be a string. Got: %r" % column)
             attr.column = column
             attr.columns = [ column ]
