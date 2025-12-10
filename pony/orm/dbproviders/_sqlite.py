@@ -10,9 +10,9 @@ class SQLiteValue(Value):
     def __str__(self) -> str:
         value = self.value
         if isinstance(value, datetime.datetime):
-            return cast(str, self.quote_str(datetime2timestamp(value)))  # type: ignore [no-untyped-call]
+            return self.quote_str(datetime2timestamp(value))
         if isinstance(value, datetime.date):
-            return cast(str, self.quote_str(str(value)))  # type: ignore [no-untyped-call]
+            return self.quote_str(str(value))
         if isinstance(value, datetime.timedelta):
             return repr(value.total_seconds() / (24 * 60 * 60))
         return super().__str__()
