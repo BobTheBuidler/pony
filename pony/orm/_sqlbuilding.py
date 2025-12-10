@@ -6,6 +6,7 @@ from typing import Any, Final, Union
 from mypy_extensions import mypyc_attr
 
 from pony.converting import timedelta2str
+from pony.utils import datetime2timestamp
 
 
 ValueType = Union[bool, str, datetime, date, timedelta, int, float, Decimal, bytes]
