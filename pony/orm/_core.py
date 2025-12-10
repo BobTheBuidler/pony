@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Tuple, final
 
-from pony.utils import throw
+from pony.utils import localbase, throw
 
 if TYPE_CHECKING:
   from pony.orm.core import EntityMeta
