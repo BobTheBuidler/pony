@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, Any, Final, List, Optional, Tuple, final
 from pony.utils import localbase, throw
 
 if TYPE_CHECKING:
-  from pony.orm.core import DBSessionContextManager, EntityMeta, PrefetchContext
+  from pony.orm.core import DBSessionContextManager, EntityMeta, Local, PrefetchContext
 
 
+'''
 @final
 class Local(localbase):
     def __init__(local) -> None:
@@ -40,6 +41,7 @@ class Local(localbase):
 
 
 local: Final = Local()
+'''
 
 
 class NotLoadedValueType(object):
@@ -56,6 +58,15 @@ class DefaultValueType(object):
 DEFAULT: Final = DefaultValueType()
 
 
+local: Optional["Local"] = None
+
+def __set_local() -> "Local":
+    from pony.orm import core
+    global local
+    local = core.local
+    return local
+
+
 def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[type, Any, dict]:  # type: ignore [type-arg]
     discr_attr = entity._discriminator_attr_
     if not discr_attr:
@@ -68,7 +79,7 @@ def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[t
         discr_value = real_entity_subclass._discriminator_  # To convert str to str in Python 2.x
 
     database = entity._database_
-    cache = local.db2cache[database]
+    cache = (local or __set_local()).db2cache[database]
 
     avdict = {}
     for attr in real_entity_subclass._attrs_:
