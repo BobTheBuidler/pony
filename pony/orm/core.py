@@ -16,7 +16,7 @@ from functools import wraps
 
 import pony
 from pony import options
-from pony.orm._core import _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
+from pony.orm._core import local, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
@@ -306,35 +306,6 @@ class PrefetchContext(object):
                                     attr.py_type in self.entities_to_prefetch and not attr.is_collection))
             self.relations_to_prefetch_cache[entity] = result
         return result
-
-
-class Local(localbase):
-    def __init__(local):
-        local.debug = False
-        local.show_values = None
-        local.debug_stack = []
-        local.db2cache = {}
-        local.db_context_counter = 0
-        local.db_session = None
-        local.prefetch_context_stack = []
-        local.current_user = None
-        local.perms_context = None
-        local.user_groups_cache = {}
-        local.user_roles_cache = defaultdict(dict)
-    @property
-    def prefetch_context(local):
-        if local.prefetch_context_stack:
-            return local.prefetch_context_stack[-1]
-        return None
-    def push_debug_state(local, debug, show_values):
-        local.debug_stack.append((local.debug, local.show_values))
-        if not suppress_debug_change:
-            local.debug = debug
-            local.show_values = show_values
-    def pop_debug_state(local):
-        local.debug, local.show_values = local.debug_stack.pop()
-
-local = Local()
 
 def _get_caches():
     return list(sorted((cache for cache in local.db2cache.values()),
