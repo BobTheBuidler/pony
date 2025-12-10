@@ -20,7 +20,7 @@ from datetime import (date as datetime_date,
                       timedelta as datetime_timedelta,
                       timezone as datetime_timezone)
 from _thread import allocate_lock as _thread_allocate_lock
-from typing import Optional, Type, TypeVar
+from typing import List, Optional, Tuple, Type, TypeVar
 
 __all__ = []
 
