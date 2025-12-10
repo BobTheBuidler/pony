@@ -1,9 +1,41 @@
-from typing import TYPE_CHECKING, Any, Tuple
+from typing import TYPE_CHECKING, Any, Tuple final
 
 from pony.utils import throw
 
 if TYPE_CHECKING:
   from pony.orm.core import EntityMeta
+
+
+@final
+class Local(localbase):
+    def __init__(local):
+        local.debug = False
+        local.show_values = None
+        local.debug_stack = []
+        local.db2cache = {}
+        local.db_context_counter = 0
+        local.db_session = None
+        local.prefetch_context_stack = []
+        local.current_user = None
+        local.perms_context = None
+        local.user_groups_cache = {}
+        local.user_roles_cache = defaultdict(dict)
+    @property
+    def prefetch_context(local):
+        if local.prefetch_context_stack:
+            return local.prefetch_context_stack[-1]
+        return None
+    def push_debug_state(local, debug, show_values):
+        local.debug_stack.append((local.debug, local.show_values))
+        if not suppress_debug_change:
+            local.debug = debug
+            local.show_values = show_values
+    def pop_debug_state(local):
+        local.debug, local.show_values = local.debug_stack.pop()
+
+
+local: Final = Local()
+
 
 def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[type, tuple, dict]:  # type: ignore [type-arg]
     discr_attr = entity._discriminator_attr_
