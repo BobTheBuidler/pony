@@ -15,6 +15,7 @@ import pony
 from pony import options
 
 from pony.thirdparty.decorator import decorator as _decorator
+from pony.utils._utils import current_timestamp, datetime2timestamp, timestamp2datetime
 
 if pony.MODE.startswith('GAE-'): localbase = object
 else: from threading import local as localbase
