@@ -131,6 +131,7 @@ if __name__ == "__main__":
     setup(
         name=name,
         version=version,
+        python_requires=">=3.9",
         description=description,
         long_description=long_description,
         classifiers=classifiers,
@@ -145,6 +146,7 @@ if __name__ == "__main__":
         test_suite='setup.test_suite',
         ext_modules=ext_modules,
     )
+
 
 
 
