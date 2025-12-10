@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 import os, sys
 from os.path import dirname
-from typing import Final
+from typing import Final, Literal
 
 __version__: Final = '0.7.19'
 
