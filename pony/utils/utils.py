@@ -10,7 +10,7 @@ from collections import defaultdict
 from functools import update_wrapper, wraps
 from xml.etree import cElementTree
 from copy import deepcopy
-from typing import Any
+from typing import Any, NoReturn, Type, Union
 
 import pony
 from pony import options
@@ -90,7 +90,7 @@ def reraise(exc_type, exc, tb):
     try: raise exc.with_traceback(tb)
     finally: del exc, tb
 
-def throw(exc_type, *args, **kwargs):
+def throw(exc_type: Union[Type[Exception], Exception], *args: Any, **kwargs: Any) -> NoReturn:
     if isinstance(exc_type, Exception):
         assert not args and not kwargs
         exc = exc_type
