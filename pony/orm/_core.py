@@ -82,3 +82,32 @@ def _get_from_identity_map_(
         assert cache.in_transaction
         cache.for_update.add(obj)
     return obj
+
+
+def _get_by_raw_pkval_(
+    entity: "Entity",
+    raw_pkval: Any,
+    for_update: bool = False,
+    from_db: bool = True,
+    seed: bool = True,
+):
+    i = 0
+    pkval = []
+    for attr in entity._pk_attrs_:
+        if attr.column is not None:
+            val = raw_pkval[i]
+            i += 1
+            if not attr.reverse: val = attr.validate(val, None, entity, from_db=from_db)
+            else: val = _get_by_raw_pkval_(attr.py_type (val,), from_db=from_db, seed=seed)
+        else:
+            if not attr.reverse: throw(NotImplementedError)
+            vals = raw_pkval[i:i+len(attr.columns)]
+            val = _get_by_raw_pkval_(attr.py_type, vals, from_db=from_db, seed=seed)
+            i += len(attr.columns)
+        pkval.append(val)
+
+    final_pkval = tuple(pkval) if entity._pk_is_composite_ else pkval[0]
+    obj = _get_from_identity_map_(entity, final_pkval, 'loaded', for_update) if seed else entity[final_pkval]
+    assert obj._status_ != 'cancelled'
+    return obj
+  
