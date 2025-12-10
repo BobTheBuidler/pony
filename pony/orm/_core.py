@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Final, Tuple, final
 
+from pony.orm.dbapiprovider import CacheIndexError, TransactionError
 from pony.utils import localbase, throw
 
 if TYPE_CHECKING:
