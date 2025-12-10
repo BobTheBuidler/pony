@@ -3804,7 +3804,7 @@ class EntityMeta(type):
         else: pk_attrs = primary_keys.pop()
         for i, attr in enumerate(pk_attrs): attr.pk_offset = i
         entity._pk_columns_ = None
-        entity._pk_attrs_ = pk_attrs
+        entity._pk_attrs_: tuple = pk_attrs
         entity._pk_is_composite_ = len(pk_attrs) > 1
         entity._pk_ = pk_attrs if len(pk_attrs) > 1 else pk_attrs[0]
         entity._keys_ = [ index.attrs for index in indexes if index.is_unique and not index.is_pk ]
