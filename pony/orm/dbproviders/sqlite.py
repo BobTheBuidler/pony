@@ -16,7 +16,7 @@ from pony.orm.ormtypes import Json, TrackedArray
 from pony.orm.sqltranslation import SQLTranslator, StringExprMonad
 from pony.orm.sqlbuilding import SQLBuilder, Value, join, make_unary_func
 from pony.orm.dbapiprovider import DBAPIProvider, Pool, wrap_dbapi_exceptions
-from pony.orm.dbapiprovider import SQLiteValue, SQLiteDateConverter, SQLiteDatetimeConverter, SQLiteTimeConverter, SQLiteTimedeltaConverter
+from pony.orm.dbproviders._sqlite import SQLiteValue, SQLiteDateConverter, SQLiteDatetimeConverter, SQLiteTimeConverter, SQLiteTimedeltaConverter
 from pony.utils import datetime2timestamp, timestamp2datetime, absolutize_path, localbase, throw, reraise, \
     cut_traceback_depth
 
