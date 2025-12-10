@@ -2,7 +2,7 @@ import datetime, time
 from typing import List, Union, cast
 
 from pony.orm import dbapiprovider
-from pony.orm.sqlbuilding import Value
+from pony.orm._sqlbuilding import Value
 from pony.utils import datetime2timestamp, timestamp2datetime
 
 
