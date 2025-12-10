@@ -28,10 +28,11 @@ except ImportError:
     mysql_module_name = 'pymysql'
 
 from pony.orm import core, dbschema, dbapiprovider, ormtypes, sqltranslation
+from pony.orm._sqlbuilding import Value
 from pony.orm.core import log_orm
 from pony.orm.dbapiprovider import DBAPIProvider, Pool, get_version_tuple, wrap_dbapi_exceptions
 from pony.orm.sqltranslation import SQLTranslator, TranslationError
-from pony.orm.sqlbuilding import Value, Param, SQLBuilder, join
+from pony.orm.sqlbuilding import Param, SQLBuilder, join
 from pony.utils import throw
 from pony.converting import str2timedelta, timedelta2str
 
