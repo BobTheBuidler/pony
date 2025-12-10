@@ -12,9 +12,9 @@ if TYPE_CHECKING:
 @final
 class Local(localbase):
     def __init__(local) -> None:
-        local.debug = False
-        local.show_values = None
-        local.debug_stack = []
+        local.debug: bool = False
+        local.show_values: Optional[bool] = None
+        local.debug_stack: List[Tuple[bool, Optional[bool]]] = []
         local.db2cache = {}
         local.db_context_counter = 0
         local.db_session = None
