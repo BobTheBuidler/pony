@@ -18,7 +18,7 @@ def check_ip(s: str) -> str:
         if not 0 <= int(item) <= 255: raise ValueError()
     return s
 
-def check_positive(s: str) -> str:
+def check_positive(s: str) -> int:
     i = int(s)
     if i > 0: return i
     raise ValueError()
@@ -187,11 +187,13 @@ def str2datetime(s: str) -> datetime:
 
 def _extract_time_parts(groupdict: Dict[str, str]) -> Tuple[int, int, int, int]:
     hh: Optional[Union[str, int]] = groupdict.get('hh')
+    mm: Optional[Union[str, int]]
+    ss: Optional[Union[str, int]]
 
     if hh is None: hh, mm, ss = 12, 00, 00
     else:
-        mm: Optional[Union[str, int]] = groupdict.get('mm')
-        ss: Optional[Union[str, int]] = groupdict.get('ss')
+        mm = groupdict.get('mm')
+        ss = groupdict.get('ss')
         am: Optional[Union[str, int]] = groupdict.get('am')
         pm: Optional[Union[str, int]] = groupdict.get('pm')
         if am and hh == '12': hh = 0
