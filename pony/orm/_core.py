@@ -1,7 +1,7 @@
 # mypy: disable-error-code="var-annotated"
 import itertools
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Final, List, Optional, Tuple, cast, final
+from typing import TYPE_CHECKING, Any, Final, List, Optional, Tuple, final
 
 from pony.utils import localbase, throw
 
@@ -61,10 +61,10 @@ DEFAULT: Final = DefaultValueType()
 local: Optional["Local"] = None
 
 def __set_local() -> "Local":
-    from pony.orm import core  # type: ignore [attr-defined]
+    from pony.orm import core
     global local
     local = core.local
-    return cast("Local", local)
+    return local
 
 
 def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[type, Any, dict]:  # type: ignore [type-arg]
