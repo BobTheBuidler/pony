@@ -2,10 +2,14 @@ from __future__ import absolute_import, print_function
 
 import os, sys
 from os.path import dirname
+from typing import Final
 
-__version__ = '0.7.19'
+__version__: Final = '0.7.19'
 
-def detect_mode():
+
+Mode = Literal["GAE-LOCAL", "GAE-SERVER", "MOD_WSGI", "INTERACTIVE", "FCGI-FLIP", "UWSGI", "FLASK", "CHERRYPY", "BOTTLE", "UNKNOWN"]
+
+def detect_mode() -> Mode:
     try: import google.appengine
     except ImportError: pass
     else:
@@ -35,18 +39,20 @@ def detect_mode():
     if 'bottle' in sys.modules: return 'BOTTLE'
     return 'UNKNOWN'
 
-MODE = detect_mode()
+MODE: Final = detect_mode()
 
-MAIN_FILE = None
+main_file = None
 if MODE == 'MOD_WSGI':
     for module_name, module in sys.modules.items():
         if module_name.startswith('_mod_wsgi_'):
-            MAIN_FILE = module.__file__
+            main_file = module.__file__
             break
 elif MODE != 'INTERACTIVE':
-    MAIN_FILE = sys.modules['__main__'].__file__
+    main_file = sys.modules['__main__'].__file__
 
-if MAIN_FILE is not None: MAIN_DIR = dirname(MAIN_FILE)
-else: MAIN_DIR = None
+MAIN_FILE: Final = main_file
+del main_file
 
-PONY_DIR = dirname(__file__)
+MAIN_DIR: Final = None if MAIN_FILE is None else dirname(MAIN_FILE)
+
+PONY_DIR: Final = dirname(__file__)
