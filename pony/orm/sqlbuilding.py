@@ -5,6 +5,7 @@ from operator import attrgetter
 from decimal import Decimal
 from datetime import date, datetime, timedelta
 from binascii import hexlify
+from typing import Sequence, Union
 
 from pony import options
 from pony.utils import datetime2timestamp, throw, is_ident
@@ -15,7 +16,7 @@ class AstError(Exception): pass
 
 class Param(object):
     __slots__ = 'style', 'id', 'paramkey', 'converter', 'optimistic'
-    def __init__(param, paramstyle, paramkey, converter=None, optimistic=False):
+    def __init__(param, paramstyle: str, paramkey, converter=None, optimistic=False):
         param.style = paramstyle
         param.id = None
         param.paramkey = paramkey
@@ -47,12 +48,12 @@ class Param(object):
         elif paramstyle == 'named': return u':p%d' % param.id
         elif paramstyle == 'pyformat': return u'%%(p%d)s' % param.id
         else: throw(NotImplementedError)
-    def __repr__(param):
+    def __repr__(param) -> None:
         return '%s(%r)' % (param.__class__.__name__, param.paramkey)
 
 class CompositeParam(Param):
     __slots__ = 'items', 'func'
-    def __init__(param, paramstyle, paramkey, items, func):
+    def __init__(param, paramstyle: str, paramkey, items: Sequence[Union[Param, Value]], func) -> None:
         for item in items: assert isinstance(item, (Param, Value)), item
         Param.__init__(param, paramstyle, paramkey)
         param.items = items
@@ -62,9 +63,8 @@ class CompositeParam(Param):
         return param.func(args)
 
 class Value(object):
-    __slots__ = 'paramstyle', 'value'
-    def __init__(self, paramstyle, value):
-        self.paramstyle = paramstyle
+    def __init__(self, paramstyle: str, value) -> None:
+        self.paramstyle: str = paramstyle
         self.value = value
     def __str__(self) -> str:
         value = self.value
@@ -83,13 +83,13 @@ class Value(object):
         if isinstance(value, (int, float, Decimal)):
             return str(value)
         if isinstance(value, bytes):
-            return "X'%s'" % hexlify(value).decode('ascii')
+            return f"X'{hexlify(value).decode('ascii')}'"
         assert False, repr(value)  # pragma: no cover
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '%s(%r)' % (self.__class__.__name__, self.value)
-    def quote_str(self, s):
+    def quote_str(self, s: str) -> str:
         if self.paramstyle in ('format', 'pyformat'): s = s.replace('%', '%%')
-        return "'%s'" % s.replace("'", "''")
+        return f"'{s.replace("'", "''")}'"
 
 def flat(tree):
     stack = [ tree ]
@@ -142,19 +142,19 @@ def move_conditions_from_inner_join_to_where(sections):
     return new_sections
 
 def make_binary_op(symbol, default_parentheses=False):
-    def binary_op(builder, expr1, expr2, parentheses=None):
+    def binary_op(builder: "SQLBuilder", expr1, expr2, parentheses=None):
         if parentheses is None: parentheses = default_parentheses
         if parentheses: return '(', builder(expr1), symbol, builder(expr2), ')'
         return builder(expr1), symbol, builder(expr2)
     return binary_op
 
 def make_unary_func(symbol):
-    def unary_func(builder, expr):
+    def unary_func(builder: "SQLBuilder", expr):
         return '%s(' % symbol, builder(expr), ')'
     return unary_func
 
 def indentable(method):
-    def new_method(builder, *args, **kwargs):
+    def new_method(builder: "SQLBuilder", *args, **kwargs):
         result = method(builder, *args, **kwargs)
         if builder.indent <= 1: return result
         return builder.indent_spaces * (builder.indent-1), result
