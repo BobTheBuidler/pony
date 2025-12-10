@@ -25,10 +25,11 @@ psycopg2.extras.register_default_json(loads=lambda x: x)
 psycopg2.extras.register_default_jsonb(loads=lambda x: x)
 
 from pony.orm import core, dbschema, dbapiprovider, sqltranslation, ormtypes
+from pony.orm._sqlbuilding import Value
 from pony.orm.core import log_orm
 from pony.orm.dbapiprovider import DBAPIProvider, Pool, wrap_dbapi_exceptions
 from pony.orm.sqltranslation import SQLTranslator
-from pony.orm.sqlbuilding import Value, SQLBuilder, join
+from pony.orm.sqlbuilding import SQLBuilder, join
 from pony.converting import timedelta2str
 from pony.utils import is_ident
 
