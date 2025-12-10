@@ -49,7 +49,7 @@ class class_cached_property(Generic[_C, _T]):
         self.func: Final = func
         self._func_name: Final = func.__name__
 
-    def __get__(self, obj: _C], cls: Type[_C]) -> _T:
+    def __get__(self, obj: _C, cls: Type[_C]) -> _T:
         value = self.func(cls)
         setattr(cls, self._func_name, value)
         return value
