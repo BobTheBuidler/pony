@@ -186,8 +186,7 @@ class TimeRE(Dict[str, str]):
             self.locale_time = locale_time
         else:
             self.locale_time = LocaleTime()
-        base = super()
-        base.__init__({  # type: ignore [misc]
+        super().__init__({  # type: ignore [misc]
             # The " [1-9]" part of the regex is to make %c from ANSI C work
             'd': r"(?P<d>3[0-1]|[1-2]\d|0[1-9]|[1-9]| [1-9])",
             'f': r"(?P<f>[0-9]{1,6})",
@@ -217,10 +216,10 @@ class TimeRE(Dict[str, str]):
                                         for tz in tz_names),
                                 'Z'),
             '%': '%'})
-        base.__setitem__('W', base.__getitem__('U').replace('U', 'W'))
-        base.__setitem__('c', self.pattern(self.locale_time.LC_date_time))
-        base.__setitem__('x', self.pattern(self.locale_time.LC_date))
-        base.__setitem__('X', self.pattern(self.locale_time.LC_time))
+        super().__setitem__('W', base.__getitem__('U').replace('U', 'W'))
+        super().__setitem__('c', self.pattern(self.locale_time.LC_date_time))
+        super().__setitem__('x', self.pattern(self.locale_time.LC_date))
+        super().__setitem__('X', self.pattern(self.locale_time.LC_time))
 
     def __seqToRE(self, to_convert: Iterable[str], directive: str) -> str:
         """Convert a list to a regex string for matching a directive.
