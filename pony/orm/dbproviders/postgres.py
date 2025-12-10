@@ -4,6 +4,7 @@ from pony.py23compat import buffer, int_types
 from decimal import Decimal
 from datetime import datetime, date, time, timedelta
 from uuid import UUID
+from typing import Final, final
 
 try:
     import psycopg2
