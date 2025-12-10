@@ -16,6 +16,7 @@ from functools import wraps
 
 import pony
 from pony import options
+from pony.orm._core import _get_by_raw_pkval_, _get_from_identity_map_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
@@ -4399,86 +4400,11 @@ class EntityMeta(type):
         locals = locals.copy() if locals is not None else {}
         locals['.0'] = entity
         return Query(code_key, inner_expr, globals, locals, cells)
-    def _get_from_identity_map_(entity, pkval, status, for_update=False, undo_funcs=None, obj_to_init=None):
-        cache = entity._database_._get_cache()
-        pk_attrs = entity._pk_attrs_
-        cache_index = cache.indexes[pk_attrs]
-        if pkval is None: obj = None
-        else: obj = cache_index.get(pkval)
-
-        if obj is None: pass
-        elif status == 'created':
-            if entity._pk_is_composite_: pkval = ', '.join(str(item) for item in pkval)
-            throw(CacheIndexError, 'Cannot create %s: instance with primary key %s already exists'
-                             % (obj.__class__.__name__, pkval))
-        elif obj.__class__ is entity: pass
-        elif issubclass(obj.__class__, entity): pass
-        elif not issubclass(entity, obj.__class__): throw(TransactionError,
-            'Unexpected class change from %s to %s for object with primary key %r' %
-            (obj.__class__, entity, obj._pkval_))
-        elif obj._rbits_ or obj._wbits_: throw(NotImplementedError)
-        else: obj.__class__ = entity
-
-        if obj is None:
-            with cache.flush_disabled():
-                obj = obj_to_init
-                if obj_to_init is None:
-                    obj = object.__new__(entity)
-                cache.objects.add(obj)
-                obj._pkval_ = pkval
-                obj._status_ = status
-                obj._vals_ = {}
-                obj._dbvals_ = {}
-                obj._save_pos_ = None
-                obj._session_cache_ = cache
-                if pkval is not None:
-                    cache_index[pkval] = obj
-                    obj._newid_ = None
-                else: obj._newid_ = next(new_instance_id_counter)
-                if obj._pk_is_composite_: pairs = zip(pk_attrs, pkval)
-                else: pairs = ((pk_attrs[0], pkval),)
-                if status == 'loaded':
-                    assert undo_funcs is None
-                    obj._rbits_ = obj._wbits_ = 0
-                    for attr, val in pairs:
-                        obj._vals_[attr] = val
-                        if attr.reverse: attr.db_update_reverse(obj, NOT_LOADED, val)
-                    cache.seeds[pk_attrs].add(obj)
-                elif status == 'created':
-                    assert undo_funcs is not None
-                    obj._rbits_ = obj._wbits_ = None
-                    for attr, val in pairs:
-                        obj._vals_[attr] = val
-                        if attr.reverse: attr.update_reverse(obj, NOT_LOADED, val, undo_funcs)
-                    cache.for_update.add(obj)
-                else: assert False  # pragma: no cover
-        if for_update:
-            assert cache.in_transaction
-            cache.for_update.add(obj)
-        return obj
-    def _get_by_raw_pkval_(entity, raw_pkval, for_update=False, from_db=True, seed=True):
-        i = 0
-        pkval = []
-        for attr in entity._pk_attrs_:
-            if attr.column is not None:
-                val = raw_pkval[i]
-                i += 1
-                if not attr.reverse: val = attr.validate(val, None, entity, from_db=from_db)
-                else: val = attr.py_type._get_by_raw_pkval_((val,), from_db=from_db, seed=seed)
-            else:
-                if not attr.reverse: throw(NotImplementedError)
-                vals = raw_pkval[i:i+len(attr.columns)]
-                val = attr.py_type._get_by_raw_pkval_(vals, from_db=from_db, seed=seed)
-                i += len(attr.columns)
-            pkval.append(val)
-        if not entity._pk_is_composite_: pkval = pkval[0]
-        else: pkval = tuple(pkval)
-        if seed:
-            obj = entity._get_from_identity_map_(pkval, 'loaded', for_update)
-        else:
-            obj = entity[pkval]
-        assert obj._status_ != 'cancelled'
-        return obj
+        
+    # I moved these funcs to _core.py to compile it
+    _get_from_identity_map_ = _get_from_identity_map_
+    _get_by_raw_pkval_ = _get_by_raw_pkval_
+    
     def _get_propagation_mixin_(entity):
         mixin = entity._propagation_mixin_
         if mixin is not None: return mixin
