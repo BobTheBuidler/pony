@@ -2211,9 +2211,7 @@ class Attribute(object):
                     'Invalid number of columns were specified for attribute %s. Expected: %d, got: %d'
                     % (attr, len(rentity._pk_columns_), len(vals)))
                 try: val = rentity._get_by_raw_pkval_(vals, from_db=from_db)
-                except TypeError: 
-                    raise
-                    throw(TypeError, 'Attribute %s must be of %s type. Got: %r'
+                except TypeError: throw(TypeError, 'Attribute %s must be of %s type. Got: %r'
                                                    % (attr, rentity.__name__, val))
             else:
                 if obj is not None and obj._status_ is not None: cache = obj._session_cache_
