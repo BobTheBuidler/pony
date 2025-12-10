@@ -1992,15 +1992,15 @@ class SessionCache(object):
 class DescWrapper(object):
     def __init__(self, attr):
         self.attr = attr
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<DescWrapper(%s)>' % self.attr
-    def __call__(self):
+    def __call__(self) -> DescWrapper:
         return self
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return type(other) is DescWrapper and self.attr == other.attr
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return type(other) is not DescWrapper or self.attr != other.attr
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.attr) + 1
 
 attr_id_counter = itertools.count(1)
@@ -2162,7 +2162,7 @@ class Attribute(object):
         for option in attr.kwargs:
             throw(TypeError, 'Attribute %s has unknown option %r' % (attr, option))
     @cut_traceback
-    def __repr__(attr):
+    def __repr__(attr) -> str:
         owner_name = attr.entity.__name__ if attr.entity else '?'
         return '%s.%s' % (owner_name, attr.name or '?')
     def __lt__(attr, other):
@@ -3302,10 +3302,10 @@ class SetInstance(object):
     def copy(wrapper):
         return wrapper._attr_.copy(wrapper._obj_)
     @cut_traceback
-    def __repr__(wrapper):
+    def __repr__(wrapper) -> str:
         return '<%s %r.%s>' % (wrapper.__class__.__name__, wrapper._obj_, wrapper._attr_.name)
     @cut_traceback
-    def __str__(wrapper):
+    def __str__(wrapper) -> str:
         cache = wrapper._obj_._session_cache_
         if cache is None or not cache.is_alive: content = '...'
         else: content = ', '.join(map(str, wrapper))
@@ -3619,7 +3619,7 @@ class Multiset(object):
     def distinct(multiset):
         return multiset._items_.copy()
     @cut_traceback
-    def __repr__(multiset):
+    def __repr__(multiset) -> str:
         cache = multiset._obj_._session_cache_
         if cache is not None and cache.is_alive:
             size = builtins.sum(multiset._items_.values())
@@ -3629,7 +3629,7 @@ class Multiset(object):
         return '<%s %r.%s%s>' % (multiset.__class__.__name__, multiset._obj_,
                                  '.'.join(multiset._attrnames_), size_str)
     @cut_traceback
-    def __str__(multiset):
+    def __str__(multiset) -> str:
         items_str = '{%s}' % ', '.join('%r: %r' % pair for pair in sorted(multiset._items_.items()))
         return '%s(%s)' % (multiset.__class__.__name__, items_str)
     @cut_traceback
@@ -4537,7 +4537,7 @@ class EntityProxy(object):
             assert pkval is not None
         object.__setattr__(self, '_obj_pk_', pkval)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         entity = self._entity_
         pkval = self._obj_pk_
         pkrepr = ','.join(repr(item) for item in pkval) if isinstance(pkval, tuple) else repr(pkval)
@@ -4687,7 +4687,7 @@ class Entity(object, metaclass=EntityMeta):
             if result: return result
         return cmp(id(entity), id(other))
     @cut_traceback
-    def __repr__(obj):
+    def __repr__(obj) -> str:
         pkval = obj._pkval_
         if pkval is None: return '%s[new:%d]' % (obj.__class__.__name__, obj._newid_)
         if obj._pk_is_composite_: pkval = ','.join(map(repr, pkval))
@@ -6164,11 +6164,11 @@ class QueryResult(object):
     def __setstate__(self, state):
         self._query = None
         self._items, self._limit, self._offset, self._expr_type, self._col_names = state
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self._items is not None:
             return self.__str__()
         return '<Lazy QueryResult object at %s>' % hex(id(self))
-    def __str__(self):
+    def __str__(self) -> str:
         return repr(self._get_items())
     def __iter__(self):
         return QueryResultIterator(self)
