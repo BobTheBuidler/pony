@@ -1,4 +1,4 @@
-from typing import Callable, Generic, Type, TypeVar, Union, final, overload
+from typing import Callable, Final, Generic, Optional, Type, TypeVar, Union, final, overload
 
 
 _O = TypeVar("_O")
@@ -19,7 +19,7 @@ class cached_property(Generic[_O, _T]):
         self.func: Final = func
 
     @overload
-    def __get__(self, obj: type(None), cls: Type[_O]) -> "cached_property[_O, _T]": ...
+    def __get__(self, obj: None, cls: Type[_O]) -> "cached_property[_O, _T]": ...
     @overload
     def __get__(self, obj: _O, cls: Type[_O]) -> _T: ...
     def __get__(self, obj: Optional[_O], cls: Type[_O]) -> Union[_T, "cached_property[_O, _T]"]:
