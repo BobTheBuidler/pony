@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Final, List, Optional, Tuple, final
 from pony.utils import localbase, throw
 
 if TYPE_CHECKING:
-  from pony.orm.core import DBSessionContextManager, EntityMeta, Local, PrefetchContext
+  from pony.orm.core import DBSessionContextManager, Entity, EntityMeta, Local, PrefetchContext
 
 
 '''
@@ -215,15 +215,15 @@ def _get_by_raw_pkval_(
     return obj
   
 
-def _db_set_(obj, avdict: dict, unpickling: bool = False) -> None:
+def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # type: ignore [type-arg]
     assert obj._status_ not in created_or_deleted_statuses
     cache = obj._session_cache_
     assert cache is not None and cache.is_alive
     cache.seeds[obj._pk_attrs_].discard(obj)
     if not avdict: return
 
-    obj_vals: dict = obj._vals_
-    obj_dbvals: dict = obj._dbvals_
+    obj_vals: dict = obj._vals_  # type: ignore [type-arg]
+    obj_dbvals: dict = obj._dbvals_  # type: ignore [type-arg]
   
     rbits = obj._rbits_
     wbits = obj._wbits_
@@ -251,6 +251,7 @@ def _db_set_(obj, avdict: dict, unpickling: bool = False) -> None:
         old_dbval = obj_dbvals.get(attr, NOT_LOADED)
         bit = obj._bits_except_volatile_[attr]
         if rbits & bit:
+            from pony.orm.core import UnrepeatableReadError
             errormsg = 'Please contact PonyORM developers so they can ' \
                        'reproduce your error and fix a bug: support@ponyorm.org'
             assert old_dbval is not NOT_LOADED, errormsg
