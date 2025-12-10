@@ -229,7 +229,7 @@ def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # 
     if not avdict: return
 
     obj_vals: dict = obj._vals_  # type: ignore [attr-defined, type-arg]
-    obj_dbvals: dict = obj._dbvals_  # type: ignore [type-arg]
+    obj_dbvals: dict = obj._dbvals_  # type: ignore [attr-defined, type-arg]
   
     rbits = obj._rbits_  # type: ignore [has-type]
     wbits = obj._wbits_  # type: ignore [has-type]
