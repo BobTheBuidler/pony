@@ -18,7 +18,7 @@ class Local(localbase):
         local.db2cache = {}
         local.db_context_counter = 0
         local.db_session = None
-        local.prefetch_context_stack: Final]List["PrefetchContext"]] = []
+        local.prefetch_context_stack: Final[List["PrefetchContext"]] = []
         local.current_user = None
         local.perms_context = None
         local.user_groups_cache = {}
