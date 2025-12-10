@@ -171,7 +171,7 @@ def _get_by_raw_pkval_(
     i = 0
     pkval = []
     for attr in entity._pk_attrs_:
-        if attr.column is None:
+        if attr.column is not None:
             val = raw_pkval[i]
             i += 1
             if not attr.reverse: val = attr.validate(val, None, entity, from_db=from_db)
