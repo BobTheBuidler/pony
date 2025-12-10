@@ -1,3 +1,4 @@
+# mypy: disable-error-code="var-annotated"
 import itertools
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Final, Tuple, final
@@ -35,7 +36,7 @@ class Local(localbase):
         if not suppress_debug_change:
             local.debug = debug
             local.show_values = show_values
-    def pop_debug_state(local) -> None:  # type: ignore [no-untyped-def]
+    def pop_debug_state(local) -> None:
         local.debug, local.show_values = local.debug_stack.pop()
 
 
@@ -56,7 +57,7 @@ class DefaultValueType(object):
 DEFAULT: Final = DefaultValueType()
 
 
-def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[type, tuple, dict]:  # type: ignore [type-arg]
+def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[type, Any, dict]:  # type: ignore [type-arg]
     discr_attr = entity._discriminator_attr_
     if not discr_attr:
         discr_value = None
@@ -80,9 +81,9 @@ def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[t
         else:
             avdict[attr] = attr.parse_value(row, offsets, cache.dbvals_deduplication_cache)
 
-    pkval = tuple(map(avdict.pop, entity._pk_attrs_))
-    assert None not in pkval
-    if not entity._pk_is_composite_: pkval = pkval[0]
+    pktup = tuple(map(avdict.pop, entity._pk_attrs_))
+    assert None not in pktup
+    pkval = pktup if entity._pk_is_composite_ else pktup[0]
     return real_entity_subclass, pkval, avdict
 
 
