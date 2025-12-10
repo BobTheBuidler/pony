@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Any, Tuple
 
 from pony.utils import throw
 
