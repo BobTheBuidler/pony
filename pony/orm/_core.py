@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, Final, List, Literal, Optional, Tup
 from pony.utils import localbase, throw
 
 if TYPE_CHECKING:
-    from pony.orm.core import Attribute, DBSessionContextManager, Entity, EntityMeta, Local, PrefetchContext, QueryResult, Set
+    from pony.orm.core import Attribute, DBSessionContextManager, Entity, EntityMeta, Local, PrefetchContext, QueryResult, QueryType, Set
 
 
 statuses = {'created', 'cancelled', 'loaded', 'modified', 'inserted', 'updated', 'marked_to_delete', 'deleted'}
@@ -319,11 +319,11 @@ class QueryResultIterator:
     def __init__(self, query_result: "QueryResult") -> None:
         self._query_result: Final = query_result
         self._position: int = 0
-    def _get_type_(self):  # type: ignore [no-untyped-def]
+    def _get_type_(self) -> Union["QueryType", tuple]:  # type: ignore [type-arg]
         if self._position != 0:
             throw(NotImplementedError, 'Cannot use partially exhausted iterator, please convert to list')
         return self._query_result._get_type_()  # type: ignore [no-untyped-call]
-    def _normalize_var(self, query_type):  # type: ignore [no-untyped-def]
+    def _normalize_var(self, query_type: Union["QueryType", tuple]):  # type: ignore [type-arg]
         if self._position != 0: throw(NotImplementedError)
         return self._query_result._normalize_var(query_type)  # type: ignore [no-untyped-call]
     def next(self):  # type: ignore [no-untyped-def]
@@ -336,6 +336,6 @@ class QueryResultIterator:
         self._position += 1
         return item
     def __next__(self):  # type: ignore [no-untyped-def]
-        return self.next()
+        return self.next()  # type: ignore [no-untyped-call]
     def __length_hint__(self) -> int:
         return len(self._query_result) - self._position
