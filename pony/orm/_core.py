@@ -1,7 +1,7 @@
 # mypy: disable-error-code="var-annotated,has-type,union-attr"
 import itertools
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, Final, List, Literal, Optional, Tuple, Union, final
+from typing import TYPE_CHECKING, Any, Dict, Final, List, Literal, Optional, Tuple, Union, cast, final
 
 from pony.utils import localbase, throw
 
@@ -323,8 +323,8 @@ class QueryResultIterator:
     def _get_type_(self) -> Union["QueryType", tuple]:  # type: ignore [type-arg]
         if self._position != 0:
             throw(NotImplementedError, 'Cannot use partially exhausted iterator, please convert to list')
-        return self._query_result._get_type_()  # type: ignore [no-untyped-call]
-    def _normalize_var(self, query_type: Union["QueryType", tuple]):  # type: ignore [type-arg]
+        return cast(Union["QueryType", tuple], self._query_result._get_type_())  # type: ignore [type-arg, no-untyped-call]
+    def _normalize_var(self, query_type: Union["QueryType", tuple]):  # type: ignore [type-arg, no-untyped-def]
         if self._position != 0: throw(NotImplementedError)
         return self._query_result._normalize_var(query_type)  # type: ignore [no-untyped-call]
     def next(self):  # type: ignore [no-untyped-def]
