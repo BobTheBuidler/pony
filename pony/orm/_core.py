@@ -117,7 +117,7 @@ def _get_from_identity_map_(
     attr: "Attribute"
     obj: Optional["Entity"]
   
-    cache = entity._database_._get_cache()  # type: ignore [union-attr]
+    cache = entity._database_._get_cache()
     pk_attrs = entity._pk_attrs_
     cache_index = cache.indexes[pk_attrs]
     if pkval is None: obj = None
@@ -236,8 +236,8 @@ def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # 
     obj_vals: dict = obj._vals_  # type: ignore [attr-defined, type-arg]
     obj_dbvals: dict = obj._dbvals_  # type: ignore [attr-defined, type-arg]
   
-    rbits = obj._rbits_  # type: ignore [has-type]
-    wbits = obj._wbits_  # type: ignore [has-type]
+    rbits = obj._rbits_
+    wbits = obj._wbits_
     for attr, new_dbval in list(avdict.items()):
         assert attr.pk_offset is None
         assert new_dbval is not NOT_LOADED
