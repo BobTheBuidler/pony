@@ -13,7 +13,7 @@ from collections import defaultdict
 from hashlib import md5
 from inspect import isgeneratorfunction
 from functools import wraps
-from typing import Any, Final, List, Optional, Tuple, Union, final
+from typing import Any, DefaultDict, Dict, Final, List, Optional, Set, Tuple, Union, final
 
 from typing_extensions import Self
 
