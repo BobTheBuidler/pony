@@ -81,7 +81,7 @@ def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: Dict["Attribute"
     else:
         discr_offset = attr_offsets[discr_attr][0]
         discr_value = discr_attr.validate(row[discr_offset], None, entity, from_db=True)  # type: ignore [no-untyped-call]
-        real_entity_subclass = discr_attr.code2cls[discr_value]
+        real_entity_subclass = discr_attr.code2cls[discr_value]  # type: ignore [attr-defined]
         discr_value = real_entity_subclass._discriminator_  # To convert str to str in Python 2.x
 
     database = entity._database_
@@ -208,7 +208,7 @@ def _get_by_raw_pkval_(
         if attr.column is not None:
             val = raw_pkval[i]
             i += 1
-            if not attr.reverse: val = attr.validate(val, None, entity, from_db=from_db)  # type: ignore [no-untyped-call]
+            if not attr.reverse: val = attr.validate(val, None, entity, from_db=from_db)
             else: val = _get_by_raw_pkval_(attr.py_type, (val,), from_db=from_db, seed=seed)
         elif not attr.reverse:
             throw(NotImplementedError)
