@@ -19,7 +19,7 @@ from typing_extensions import Self
 
 import pony
 from pony import options
-from pony.orm._core import DEFAULT, NOT_LOADED, new_instance_id_counter, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
+from pony.orm._core import DEFAULT, NOT_LOADED, db_update_reverse, new_instance_id_counter, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
@@ -2453,15 +2453,8 @@ class Attribute(object):
             if old_val not in (None, NOT_LOADED): reverse.reverse_remove((old_val,), obj, undo_funcs)
             if new_val is not None: reverse.reverse_add((new_val,), obj, undo_funcs)
         else: throw(NotImplementedError)
-    def db_update_reverse(attr, obj, old_dbval, new_dbval):
-        reverse = attr.reverse
-        if not reverse.is_collection:
-            if old_dbval not in (None, NOT_LOADED): reverse.db_set(old_dbval, NOT_LOADED, True)
-            if new_dbval is not None: reverse.db_set(new_dbval, obj, True)
-        elif isinstance(reverse, Set):
-            if old_dbval not in (None, NOT_LOADED): reverse.db_reverse_remove((old_dbval,), obj)
-            if new_dbval is not None: reverse.db_reverse_add((new_dbval,), obj)
-        else: throw(NotImplementedError)
+    def db_update_reverse(attr: "Attribute", obj: "Entity", old_dbval: Any, new_dbval: Any) -> None:
+        db_update_reverse(attr, obj, old_dbval, new_dbval)
     def __delete__(attr, obj):
         throw(NotImplementedError)
     def get_raw_values(attr, val):
@@ -2483,7 +2476,7 @@ class Attribute(object):
             attr.col_paths = [ attr.name ]
             attr.converters = [ provider.get_converter_by_attr(attr) ]
         else:
-            def generate_columns():
+            def generate_columns() -> None:
                 reverse_pk_columns = reverse.entity._get_pk_columns_()
                 reverse_pk_col_paths = reverse.entity._pk_paths_
                 if not attr.columns:
@@ -2511,12 +2504,12 @@ class Attribute(object):
         else: attr.column = None
         return attr.columns
     @property
-    def asc(attr):
+    def asc(attr) -> Self:
         return attr
     @property
-    def desc(attr):
+    def desc(attr) -> "DescWrapper":
         return DescWrapper(attr)
-    def describe(attr):
+    def describe(attr) -> str:
         t = attr.py_type
         if isinstance(t, type): t = t.__name__
         options = []
@@ -3128,10 +3121,11 @@ class Set(Collection):
                 else: setdata.added.remove(item)
                 if not was_modified_earlier: objects_with_modified_collections.remove(obj)
         undo_funcs.append(undo_func)
-    def db_reverse_add(attr, objects, item):
+    def db_reverse_add(attr, objects: List["Entity"], item):
         for obj in objects:
-            setdata = obj._vals_.get(attr)
-            if setdata is None: setdata = obj._vals_[attr] = SetData()
+            vals = obj._vals_
+            setdata: Optional[SetData] = vals.get(attr)
+            if setdata is None: setdata = vals[attr] = SetData()
             elif setdata.is_fully_loaded and not attr.is_volatile: throw(UnrepeatableReadError,
                 'Phantom object %s appeared in collection %s.%s' % (safe_repr(item), safe_repr(obj), attr.name))
             setdata.add(item)
