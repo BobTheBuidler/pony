@@ -20,7 +20,7 @@ from typing_extensions import Self
 
 import pony
 from pony import options
-from pony.orm._core import DEFAULT, NOT_LOADED, db_update_reverse, new_instance_id_counter, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
+from pony.orm._core import DEFAULT, NOT_LOADED, QueryResultIterator, db_update_reverse, new_instance_id_counter, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
@@ -6102,32 +6102,6 @@ class Query(object):
         return query.order_by('random()')[:limit]
     def to_json(query, include=(), exclude=(), converter=None, with_schema=True, schema_hash=None):
         return query._database.to_json(query[:], include, exclude, converter, with_schema, schema_hash)
-
-
-class QueryResultIterator(object):
-    __slots__ = '_query_result', '_position'
-    def __init__(self, query_result):
-        self._query_result = query_result
-        self._position = 0
-    def _get_type_(self):
-        if self._position != 0:
-            throw(NotImplementedError, 'Cannot use partially exhausted iterator, please convert to list')
-        return self._query_result._get_type_()
-    def _normalize_var(self, query_type):
-        if self._position != 0: throw(NotImplementedError)
-        return self._query_result._normalize_var(query_type)
-    def next(self):
-        qr = self._query_result
-        if qr._items is None:
-            qr._items = qr._query._actual_fetch(qr._limit, qr._offset)
-        if self._position >= len(qr._items):
-            raise StopIteration
-        item = qr._items[self._position]
-        self._position += 1
-        return item
-    __next__ = next
-    def __length_hint__(self):
-        return len(self._query_result) - self._position
 
 
 def make_query_result_method_error_stub(name, title=None):
