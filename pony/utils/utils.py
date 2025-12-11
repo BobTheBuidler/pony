@@ -10,7 +10,7 @@ from collections import defaultdict
 from functools import update_wrapper, wraps
 from xml.etree import cElementTree
 from copy import deepcopy
-from typing import Any, NoReturn, Type, Union
+from typing import Any, NoReturn, Tuple, Type, Union
 
 import pony
 from pony import options
@@ -212,7 +212,7 @@ expr3_re = re.compile(r"""
     |   "(?:[^"\\]|\\.)*?"        # "string"
     """, re.VERBOSE)
 
-def parse_expr(s, pos=0):
+def parse_expr(s: str, pos: int = 0) -> Tuple[str, bool]:
     z = 0
     match = expr1_re.match(s, pos)
     if match is None: raise ValueError()
