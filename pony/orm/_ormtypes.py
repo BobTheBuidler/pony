@@ -80,7 +80,7 @@ class RawSQL:
 class RawSQLType:
     def __deepcopy__(self, memo) -> Self:  # type: ignore[no-untyped-def]
         return self  # RawSQLType instances are "immutable"
-    def __init__(self, sql: str, items: Tuple[str, ...], types: tuple, result_type) -> None:  # type: ignore[type-arg, no-untyped-def]
+    def __init__(self, sql: str, items: Tuple[Item, ...], types: Tuple[type, ...], result_type) -> None:  # type: ignore[type-arg, no-untyped-def]
         self.sql: Final = sql
         self.items: Final = items
         self.types: Final = types
