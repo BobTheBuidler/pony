@@ -13,7 +13,8 @@ from collections import defaultdict
 from hashlib import md5
 from inspect import isgeneratorfunction
 from functools import wraps
-from typing import Any, DefaultDict, Dict, Final, List, NoReturn, Optional, Set, Tuple, Union, final
+from typing import Any, DefaultDict, Dict, Final, Iterator, List, NoReturn, Optional, Tuple, Union, final
+from typing import Set as typing_Set
 
 from typing_extensions import Self
 
@@ -1744,7 +1745,7 @@ class SessionCache:
         cache.is_alive: bool = True
         cache.num = next(num_counter)
         cache.database = database
-        cache.objects: Set["Entity"] = set()
+        cache.objects: typing_Set["Entity"] = set()
         cache.indexes = defaultdict(dict)
         cache.seeds = defaultdict(set)
         cache.max_id_cache = {}
