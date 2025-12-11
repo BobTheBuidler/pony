@@ -312,3 +312,29 @@ def db_update_reverse(
         if old_dbval not in (None, NOT_LOADED): reverse.db_reverse_remove((old_dbval,), obj)  # type: ignore [no-untyped-call]
         if new_dbval is not None: reverse.db_reverse_add((new_dbval,), obj)
     else: throw(NotImplementedError)
+
+
+@final
+class QueryResultIterator:
+    def __init__(self, query_result: "QueryResult") -> None:
+        self._query_result: Final = query_result
+        self._position: int = 0
+    def _get_type_(self) -> type:
+        if self._position != 0:
+            throw(NotImplementedError, 'Cannot use partially exhausted iterator, please convert to list')
+        return self._query_result._get_type_()  # type: ignore [no-untyped-call]
+    def _normalize_var(self, query_type):  # type: ignore [no-untyped-def]
+        if self._position != 0: throw(NotImplementedError)
+        return self._query_result._normalize_var(query_type)  # type: ignore [no-untyped-call]
+    def next(self):  # type: ignore [no-untyped-def]
+        qr = self._query_result
+        if qr._items is None:
+            qr._items = qr._query._actual_fetch(qr._limit, qr._offset)
+        if self._position >= len(qr._items):
+            raise StopIteration
+        item = qr._items[self._position]
+        self._position += 1
+        return item
+    __next__ = next
+    def __length_hint__(self) -> int:
+        return len(self._query_result) - self._position
