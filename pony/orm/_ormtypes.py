@@ -1,6 +1,6 @@
 import sys
 import types
-from typing import Any, Dict, Final, Optional, Tuple, final
+from typing import Any, Dict, Final, List, Optional, Tuple, final
 
 from typing_extensions import Self
 
@@ -20,8 +20,8 @@ def parse_raw_sql(sql: str) -> Parsed:
     if result is not None: return result
     if not isinstance(sql, str) or not sql:
         throw(TypeError, "Raw SQL string fragment expected. Got: %r" % sql)
-    items = []
-    codes = []
+    items: List[str] = []
+    codes: List[types.CodeType] = []
     pos = 0
     while True:
         try: i = sql.index('$', pos)
@@ -79,7 +79,7 @@ class RawSQL:
 class RawSQLType:
     def __deepcopy__(self, memo) -> Self:  # type: ignore[no-untyped-def]
         return self  # RawSQLType instances are "immutable"
-    def __init__(self, sql: str, items: Tuple[str, ...], types: tuple, result_type) -> None:  # type: ignore[no-untyped-def]
+    def __init__(self, sql: str, items: Tuple[str, ...], types: tuple, result_type) -> None:  # type: ignore[type-arg, no-untyped-def]
         self.sql: Final = sql
         self.items: Final = items
         self.types: Final = types
@@ -94,7 +94,7 @@ class RawSQLType:
 
 # TODO: add overloads
 def normalize(value: Any) -> Tuple[Any, Any]:
-    value = deref_proxy(value)
+    value = deref_proxy(value)  # type: ignore [no-untyped-call]
     t = type(value)
     if t is tuple:
         item_types, item_values = [], []
@@ -106,23 +106,23 @@ def normalize(value: Any) -> Tuple[Any, Any]:
 
     if t.__name__ == 'EntityMeta':
         from pony.orm.ormtypes import SetType
-        return SetType(value), value
+        return SetType(value), value  # type: ignore [no-untyped-call]
 
     if t.__name__ == 'EntityIter':
         from pony.orm.ormtypes import SetType
         entity = value.entity
-        return SetType(entity), entity
+        return SetType(entity), entity  # type: ignore [no-untyped-call]
 
     if isinstance(value, str):
         return str, value
 
     if t in function_types:
         from pony.orm.ormtypes import FuncType
-        return FuncType(value), value
+        return FuncType(value), value  # type: ignore [no-untyped-call]
 
     if t is types.MethodType:
         from pony.orm.ormtypes import MethodType
-        return MethodType(value), value
+        return MethodType(value), value  # type: ignore [no-untyped-call]
 
     if hasattr(value, '_get_type_'):
         return value._get_type_(), value
