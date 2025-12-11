@@ -300,7 +300,10 @@ def db_update_reverse(attr: "Attribute", obj: "Entity", old_dbval: Any, new_dbva
     if not reverse.is_collection:
         if old_dbval not in (None, NOT_LOADED): reverse.db_set(old_dbval, NOT_LOADED, True)  # type: ignore [no-untyped-call]
         if new_dbval is not None: reverse.db_set(new_dbval, obj, True)  # type: ignore [no-untyped-call]
-    elif isinstance(reverse, Set):
+        return
+        
+    from pony.orm.core import Set
+    if isinstance(reverse, Set):
         if old_dbval not in (None, NOT_LOADED): reverse.db_reverse_remove((old_dbval,), obj)
         if new_dbval is not None: reverse.db_reverse_add((new_dbval,), obj)
     else: throw(NotImplementedError)
