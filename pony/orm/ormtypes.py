@@ -6,12 +6,16 @@ from decimal import Decimal
 from datetime import date, time, datetime, timedelta
 from functools import wraps
 from uuid import UUID
-from typing import Any, Final, Literal, Tuple
+from typing import TYPE_CHECKING, Any, Final, Literal, Tuple
 
 from typing_extensions import Self
 
 from pony.orm._ormtypes import RawSQL, RawSQLType, normalize, normalize_type, parse_raw_sql, raw_sql, 
 from pony.utils import throw
+
+if TYPE_CHECKING:
+    from pony.orm._sqlbuilding import Value
+    from pony.orm.core import Attribute, Entity
 
 NoneType = type(None)
 
@@ -148,7 +152,7 @@ class TrackedValue(object):
         self.obj_ref: Final = weakref.ref(obj)
         self.attr: Final = attr
     @classmethod
-    def make(cls, obj, attr, value):
+    def make(cls, obj: "Entity", attr: "Attribute", value: "Value") -> None:
         if isinstance(value, dict):
             return TrackedDict(obj, attr, value)
         if isinstance(value, list):
@@ -175,7 +179,7 @@ def tracked_method(func):
     return new_func
 
 class TrackedDict(TrackedValue, dict):
-    def __init__(self, obj, attr, value):
+    def __init__(self, obj: "Entity", attr: "Attribute", value: "Value"):
         TrackedValue.__init__(self, obj, attr)
         dict.__init__(self, {key: self.make(obj, attr, val) for key, val in value.items()})
     def __reduce__(self):
@@ -195,7 +199,7 @@ class TrackedDict(TrackedValue, dict):
                 for key, val in self.items()}
 
 class TrackedList(TrackedValue, list):
-    def __init__(self, obj, attr, value):
+    def __init__(self, obj: "Entity", attr: "Attribute", value: "Value"):
         TrackedValue.__init__(self, obj, attr)
         list.__init__(self, (self.make(obj, attr, val) for val in value))
     def __reduce__(self):
@@ -221,7 +225,7 @@ def validate_item(item_type, item):
     return item
 
 class TrackedArray(TrackedList):
-    def __init__(self, obj, attr, value):
+    def __init__(self, obj: "Entity", attr: "Attribute", value: "Value"):
         TrackedList.__init__(self, obj, attr, value)
         self.item_type = attr.py_type.item_type
     def extend(self, items):
