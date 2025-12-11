@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Final, List, Optional, Tuple, final
 from pony.utils import localbase, throw
 
 if TYPE_CHECKING:
-  from pony.orm.core import DBSessionContextManager, Entity, EntityMeta, Local, PrefetchContext
+    from pony.orm.core import Attribute, DBSessionContextManager, Entity, EntityMeta, Local, PrefetchContext, Set
 
 
 statuses = {'created', 'cancelled', 'loaded', 'modified', 'inserted', 'updated', 'marked_to_delete', 'deleted'}
@@ -114,6 +114,8 @@ def _get_from_identity_map_(
     undo_funcs: Any = None,
     obj_to_init: Any = None,
 ) -> Any:
+    attr: "Attribute"
+  
     cache = entity._database_._get_cache()  # type: ignore [union-attr]
     pk_attrs = entity._pk_attrs_
     cache_index = cache.indexes[pk_attrs]
@@ -161,7 +163,7 @@ def _get_from_identity_map_(
                     obj._rbits_ = obj._wbits_ = 0
                     for attr, val in zip(pk_attrs, pkval):
                         obj_vals[attr] = val
-                        if attr.reverse: attr.db_update_reverse(obj, NOT_LOADED, val)
+                        if attr.reverse: db_update_reverse(attr, obj, NOT_LOADED, val)
                     cache.seeds[pk_attrs].add(obj)
                 elif status == 'created':
                     assert undo_funcs is not None
@@ -177,7 +179,7 @@ def _get_from_identity_map_(
                     assert undo_funcs is None
                     obj._rbits_ = obj._wbits_ = 0
                     obj._vals_[attr] = pkval
-                    if attr.reverse: attr.db_update_reverse(obj, NOT_LOADED, pkval)
+                    if attr.reverse: db_update_reverse(attr, obj, NOT_LOADED, pkval)
                     cache.seeds[pk_attrs].add(obj)
                 elif status == 'created':
                     assert undo_funcs is not None
@@ -222,6 +224,8 @@ def _get_by_raw_pkval_(
   
 
 def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # type: ignore [type-arg]
+    attr: "Attribute"
+  
     assert obj._status_ not in created_or_deleted_statuses
     cache = obj._session_cache_  # type: ignore [attr-defined]
     assert cache is not None and cache.is_alive
@@ -265,7 +269,7 @@ def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # 
                   'Value of %s.%s for %s was updated outside of current transaction (was: %r, now: %r)'
                   % (obj.__class__.__name__, attr.name, obj, old_dbval, new_dbval))
 
-        if attr.reverse: attr.db_update_reverse(obj, old_dbval, new_dbval)
+        if attr.reverse: db_update_reverse(attr, obj, old_dbval, new_dbval)
         obj_dbvals[attr] = new_dbval
         if wbits & bit:
             del new_vals[attr]
@@ -287,3 +291,14 @@ def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # 
                 cache.db_update_composite_index(obj, attrs, prev_key_vals, new_key_vals)
 
     obj_vals.update(new_vals)
+
+
+def db_update_reverse(attr: "Attribute", obj: "Entity", old_dbval: Any, new_dbval: Any) -> None:
+    reverse = attr.reverse
+    if not reverse.is_collection:
+        if old_dbval not in (None, NOT_LOADED): reverse.db_set(old_dbval, NOT_LOADED, True)
+        if new_dbval is not None: reverse.db_set(new_dbval, obj, True)
+    elif isinstance(reverse, Set):
+        if old_dbval not in (None, NOT_LOADED): reverse.db_reverse_remove((old_dbval,), obj)
+        if new_dbval is not None: reverse.db_reverse_add((new_dbval,), obj)
+    else: throw(NotImplementedError)
