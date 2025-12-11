@@ -335,6 +335,7 @@ class QueryResultIterator:
         item = qr._items[self._position]
         self._position += 1
         return item
-    __next__ = next
+    def __next__(self):  # type: ignore [no-untyped-def]
+        return self.next()
     def __length_hint__(self) -> int:
         return len(self._query_result) - self._position
