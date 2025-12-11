@@ -119,6 +119,7 @@ mypyc_files = [
     "pony/orm/sqlsymbols.py",
     "pony/py23compat.py",
     "pony/orm/_core.py",
+    "pony/orm/_ormtypes.py",
     "pony/orm/_sqlbuilding.py",
     "pony/orm/dbproviders/_sqlite.py",
     "pony/utils/_strptime.py",
@@ -156,6 +157,7 @@ if __name__ == "__main__":
         test_suite='setup.test_suite',
         ext_modules=ext_modules,
     )
+
 
 
 
