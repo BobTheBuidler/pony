@@ -1,7 +1,7 @@
 # mypy: disable-error-code="var-annotated,has-type,union-attr"
 import itertools
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Final, List, Optional, Tuple, final
+from typing import TYPE_CHECKING, Any, Dict, Final, List, Optional, Tuple, final
 
 from pony.utils import localbase, throw
 
@@ -51,14 +51,14 @@ class Local(localbase):
 
 
 class NotLoadedValueType(object):
-    def __repr__(self) -> str:
+    def __repr__(self) -> Literal["NOT_LOADED"]:
         return 'NOT_LOADED'
 
 NOT_LOADED: Final = NotLoadedValueType()
 
 
 class DefaultValueType(object):
-    def __repr__(self) -> str:
+    def __repr__(self) -> Literal["DEFAULT"]:
         return 'DEFAULT'
 
 DEFAULT: Final = DefaultValueType()
@@ -73,8 +73,8 @@ def __set_local() -> "Local":
     return local
 
 
-def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[type, Any, dict]:  # type: ignore [type-arg]
-    discr_attr = entity._discriminator_attr_
+def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: Dict["Attribute"]) -> Tuple[type, Any, dict]:  # type: ignore [type-arg]
+    discr_attr: Optional["Attribute"] = entity._discriminator_attr_
     if not discr_attr:
         discr_value = None
         real_entity_subclass = entity
@@ -87,7 +87,7 @@ def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: dict) -> Tuple[t
     database = entity._database_
     cache = (local or __set_local()).db2cache[database]
 
-    avdict = {}
+    avdict: Dict["Attribute", Any] = {}
     for attr in real_entity_subclass._attrs_:
         offsets = attr_offsets.get(attr)
         if offsets is None:
@@ -114,8 +114,8 @@ def _get_from_identity_map_(
     undo_funcs: Any = None,
     obj_to_init: Any = None,
 ) -> Any:
-    attr: "Attribute"
-    obj: Optional["Entity"]
+    #attr: "Attribute"
+    #obj: Optional["Entity"]
   
     cache = entity._database_._get_cache()
     pk_attrs = entity._pk_attrs_
@@ -224,7 +224,7 @@ def _get_by_raw_pkval_(
     return obj
   
 
-def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # type: ignore [type-arg]
+def _db_set_(obj: "Entity", avdict: Dict["Attribute", Any], unpickling: bool = False) -> None:  # type: ignore [type-arg]
     attr: "Attribute"
   
     assert obj._status_ not in created_or_deleted_statuses
@@ -233,8 +233,8 @@ def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # 
     cache.seeds[obj._pk_attrs_].discard(obj)  # type: ignore [attr-defined]
     if not avdict: return
 
-    obj_vals: dict = obj._vals_  # type: ignore [attr-defined, type-arg]
-    obj_dbvals: dict = obj._dbvals_  # type: ignore [attr-defined, type-arg]
+    obj_vals: Dict["Attribute", Any] = obj._vals_
+    obj_dbvals: Dict["Attribute", Any] = obj._dbvals_
   
     rbits = obj._rbits_
     wbits = obj._wbits_
