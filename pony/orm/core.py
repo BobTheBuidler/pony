@@ -2053,7 +2053,7 @@ class Attribute(object):
         attr.auto: bool = kwargs.pop('auto', False)
         attr.cascade_delete: Optional[bool] = kwargs.pop('cascade_delete', None)
 
-        attr.reverse: Optional[bool] = kwargs.pop('reverse', None)
+        attr.reverse: Optional[Attribute] = kwargs.pop('reverse', None)
         if not attr.reverse: pass
         elif not isinstance(attr.reverse, (str, Attribute)):
             throw(TypeError, "Value of 'reverse' option must be name of reverse attribute). Got: %r" % attr.reverse)
