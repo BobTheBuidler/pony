@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Final, Literal, Tuple
 
 from typing_extensions import Self
 
-from pony.orm._ormtypes import RawSQL, RawSQLType, normalize, normalize_type, parse_raw_sql, raw_sql, 
+from pony.orm._ormtypes import RawSQL, RawSQLType, normalize, normalize_type, parse_raw_sql, raw_sql
 from pony.utils import throw
 
 if TYPE_CHECKING:
