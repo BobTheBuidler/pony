@@ -6111,7 +6111,7 @@ def make_query_result_method_error_stub(name, title=None):
 
 class QueryResult(object):
     __slots__ = '_query', '_limit', '_offset', '_items', '_expr_type', '_col_names'
-    def __init__(self, query, limit, offset, lazy):
+    def __init__(self, query: "Query", limit, offset, lazy: bool) -> None:
         translator = query._translator
         self._query = query
         self._limit = limit
@@ -6147,9 +6147,9 @@ class QueryResult(object):
         return '<Lazy QueryResult object at %s>' % hex(id(self))
     def __str__(self) -> str:
         return repr(self._get_items())
-    def __iter__(self):
+    def __iter__(self) -> QueryResultIterator:
         return QueryResultIterator(self)
-    def __len__(self):
+    def __len__(self) -> int:
         if self._items is None:
             self._items = self._query._actual_fetch(self._limit, self._offset)
         return len(self._items)
