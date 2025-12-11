@@ -365,32 +365,45 @@ class Json(object):
         return '<Json %r>' % self.wrapped
 
 class Array(object):
-    item_type = None  # Should be overridden in subclass
+    item_type: Optional[Type[Any]] = None  # Should be overridden in subclass
 
     @classmethod
     def default_empty_value(cls):
         return []
 
 
+@final
 class IntArray(Array):
-    item_type = int
+    item_type: Final = int
 
 
+@final
 class StrArray(Array):
-    item_type = str
+    item_type: Final = str
 
 
+@final
 class FloatArray(Array):
-    item_type = float
+    item_type: Final = float
 
 
-numeric_types = {bool, int, float, Decimal}
-comparable_types = {int, float, Decimal, str, date, time, datetime, timedelta, bool, UUID, IntArray, StrArray, FloatArray}
-primitive_types = comparable_types | {buffer}
-function_types = {type, types.FunctionType, types.BuiltinFunctionType}
-type_normalization_dict = {}
+numeric_types: Final[FrozenSet[Union[Type[bool], Type[int], Type[float], Type[Decimal]]]] = frozenset({bool, int, float, Decimal})
+comparable_types: Final[
+    FrozenSet[
+        Union[Type[int], Type[float], Type[Decimal], Type[str], Type[date], Type[time], Type[datetime], Type[timedelta], Type[bool], Type[UUID], Type[IntArray], Type[StrArray], Type[FloatArray]]
+    ],
+] = frozenset({int, float, Decimal, str, date, time, datetime, timedelta, bool, UUID, IntArray, StrArray, FloatArray})
+primitive_types: Final[
+    FrozenSet[
+        Union[Type[int], Type[float], Type[Decimal], Type[str], Type[date], Type[time], Type[datetime], Type[timedelta], Type[bool], Type[UUID], Type[IntArray], Type[StrArray], Type[FloatArray], Type[buffer]]
+    ],
+] = frozenset(comparable_types | {buffer})
+function_types: Final[
+    FrozenSet[Union[Type[Type[Any]], Type[types.FunctionType], Type[types.BuiltinFunctionType]]]
+] = frozenset({type, types.FunctionType, types.BuiltinFunctionType})
+type_normalization_dict: Final[Dict[Type[Any], Type[Any]]] = {}
 
-array_types = {
+array_types: Final[Dict[Type[Any], Type[Any]]] = {
     int: IntArray,
     float: FloatArray,
     str: StrArray
