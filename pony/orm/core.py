@@ -13,7 +13,7 @@ from collections import defaultdict
 from hashlib import md5
 from inspect import isgeneratorfunction
 from functools import wraps
-from typing import Any, DefaultDict, Dict, Final, List, Optional, Set, Tuple, Union, final
+from typing import Any, DefaultDict, Dict, Final, List, NoReturn, Optional, Set, Tuple, Union, final
 
 from typing_extensions import Self
 
@@ -3092,7 +3092,7 @@ class Set(Collection):
             else: setdata.removed = to_remove  # removed may be None
         cache.modified_collections[attr].add(obj)
         cache.modified = True
-    def __delete__(attr, obj):
+    def __delete__(attr, obj: "Entity") -> NoReturn:
         throw(NotImplementedError)
     def reverse_add(attr, objects, item, undo_funcs):
         undo = []
@@ -3112,7 +3112,7 @@ class Set(Collection):
             if in_removed: setdata.removed.remove(item)
             else: setdata.added.add(item)
             objects_with_modified_collections.add(obj)
-        def undo_func():
+        def undo_func() -> None:
             for obj, in_removed, was_modified_earlier in undo:
                 setdata = obj._vals_[attr]
                 setdata.remove(item)
