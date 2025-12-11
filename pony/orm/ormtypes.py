@@ -6,8 +6,12 @@ from decimal import Decimal
 from datetime import date, time, datetime, timedelta
 from functools import wraps
 from uuid import UUID
+from typing import Any, Final, Literal, Tuple
 
-from pony.utils import throw, parse_expr, deref_proxy
+from typing_extensions import Self
+
+from pony.orm._ormtypes import RawSQL, RawSQLType, normalize, normalize_type, parse_raw_sql, raw_sql, 
+from pony.utils import throw
 
 NoneType = type(None)
 
@@ -18,108 +22,45 @@ LongUnicode = LongStr
 
 class SetType(object):
     __slots__ = 'item_type'
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> Self:
         return self  # SetType instances are "immutable"
     def __init__(self, item_type):
         self.item_type = item_type
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return type(other) is SetType and self.item_type == other.item_type
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return type(other) is not SetType or self.item_type != other.item_type
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.item_type) + 1
 
 class FuncType(object):
     __slots__ = 'func'
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> Self:
         return self  # FuncType instances are "immutable"
     def __init__(self, func):
         self.func = func
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return type(other) is FuncType and self.func == other.func
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return type(other) is not FuncType or self.func != other.func
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.func) + 1
     def __repr__(self):
         return 'FuncType(%s at %d)' % (self.func.__name__, id(self.func))
 
 class MethodType(object):
     __slots__ = 'obj', 'func'
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> Self:
         return self  # MethodType instances are "immutable"
     def __init__(self, method):
         self.obj = method.__self__
         self.func = method.__func__
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return type(other) is MethodType and self.obj == other.obj and self.func == other.func
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return type(other) is not MethodType or self.obj != other.obj or self.func != other.func
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.obj) ^ hash(self.func)
-
-raw_sql_cache = {}
-
-def parse_raw_sql(sql):
-    result = raw_sql_cache.get(sql)
-    if result is not None: return result
-    if not isinstance(sql, str) or not sql:
-        throw(TypeError, "Raw SQL string fragment expected. Got: %r" % sql)
-    items = []
-    codes = []
-    pos = 0
-    while True:
-        try: i = sql.index('$', pos)
-        except ValueError:
-            items.append(sql[pos:])
-            break
-        items.append(sql[pos:i])
-        if sql[i+1] == '$':
-            items.append('$')
-            pos = i+2
-        else:
-            try: expr, _ = parse_expr(sql, i+1)
-            except ValueError:
-                raise ValueError(sql[i:])
-            pos = i+1 + len(expr)
-            if expr.endswith(';'): expr = expr[:-1]
-            code = compile(expr, '<?>', 'eval')  # expr correction check
-            codes.append(code)
-            items.append((expr, code))
-    result = tuple(items), tuple(codes)
-    raw_sql_cache[sql] = result
-    return result
-
-def raw_sql(sql, result_type=None):
-    globals = sys._getframe(1).f_globals
-    locals = sys._getframe(1).f_locals
-    return RawSQL(sql, globals, locals, result_type)
-
-class RawSQL(object):
-    def __deepcopy__(self, memo):
-        assert False  # should not attempt to deepcopy RawSQL instances, because of locals/globals
-    def __init__(self, sql, globals=None, locals=None, result_type=None):
-        self.sql = sql
-        self.items, self.codes = parse_raw_sql(sql)
-        self.types, self.values = normalize(tuple(eval(code, globals, locals) for code in self.codes))
-        self.result_type = result_type
-    def _get_type_(self):
-        return RawSQLType(self.sql, self.items, self.types, self.result_type)
-
-class RawSQLType(object):
-    def __deepcopy__(self, memo):
-        return self  # RawSQLType instances are "immutable"
-    def __init__(self, sql, items, types, result_type):
-        self.sql = sql
-        self.items = items
-        self.types = types
-        self.result_type = result_type
-    def __hash__(self):
-        return hash(self.sql) ^ hash(self.types)
-    def __eq__(self, other):
-        return type(other) is RawSQLType and self.sql == other.sql and self.types == other.types
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
 class QueryType(object):
     def __init__(self, query, limit=None, offset=None):
@@ -127,67 +68,18 @@ class QueryType(object):
         self.translator = query._translator
         self.limit = limit
         self.offset = offset
-    def __hash__(self):
+    def __hash__(self) -> int:
         result = hash(self.query_key)
         if self.limit is not None:
             result ^= hash(self.limit + 3)
         if self.offset is not None:
             result ^= hash(self.offset)
         return result
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return type(other) is QueryType and self.query_key == other.query_key \
                and self.limit == other.limit and self.offset == other.offset
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
-
-
-def normalize(value):
-    value = deref_proxy(value)
-    t = type(value)
-    if t is tuple:
-        item_types, item_values = [], []
-        for item in value:
-            item_type, item_value = normalize(item)
-            item_values.append(item_value)
-            item_types.append(item_type)
-        return tuple(item_types), tuple(item_values)
-
-    if t.__name__ == 'EntityMeta':
-        return SetType(value), value
-
-    if t.__name__ == 'EntityIter':
-        entity = value.entity
-        return SetType(entity), entity
-
-    if isinstance(value, str):
-        return str, value
-
-    if t in function_types:
-        return FuncType(value), value
-
-    if t is types.MethodType:
-        return MethodType(value), value
-
-    if hasattr(value, '_get_type_'):
-        return value._get_type_(), value
-
-    return normalize_type(t), value
-
-def normalize_type(t):
-    tt = type(t)
-    if tt is tuple: return tuple(normalize_type(item) for item in t)
-    if not isinstance(t, type):
-        return t
-    assert t.__name__ != 'EntityMeta'
-    if tt.__name__ == 'EntityMeta': return t
-    if t is NoneType: return t
-    t = type_normalization_dict.get(t, t)
-    if t in primitive_types: return t
-    if t in (slice, type(Ellipsis)): return t
-    if issubclass(t, str): return str
-    if issubclass(t, (dict, Json)): return Json
-    if issubclass(t, Array): return t
-    throw(TypeError, 'Unsupported type %r' % t.__name__)
 
 coercions = {
     (int, float): float,
@@ -252,9 +144,9 @@ def are_comparable_types(t1, t2, op='=='):
     return (t1, t2) in coercions
 
 class TrackedValue(object):
-    def __init__(self, obj, attr):
-        self.obj_ref = weakref.ref(obj)
-        self.attr = attr
+    def __init__(self, obj: "Entity", attr: "Attribute") -> None:
+        self.obj_ref: Final = weakref.ref(obj)
+        self.attr: Final = attr
     @classmethod
     def make(cls, obj, attr, value):
         if isinstance(value, dict):
@@ -262,11 +154,11 @@ class TrackedValue(object):
         if isinstance(value, list):
             return TrackedList(obj, attr, value)
         return value
-    def _changed_(self):
+    def _changed_(self) -> None:
         obj = self.obj_ref()
         if obj is not None:
             obj._attr_changed_(self.attr)
-    def get_untracked(self):
+    def get_untracked(self) -> Tuple[Literal[False], Literal["Abstract method"]:
         assert False, 'Abstract method'  # pragma: no cover
 
 def tracked_method(func):
