@@ -162,7 +162,7 @@ class TrackedValue(object):
         obj = self.obj_ref()
         if obj is not None:
             obj._attr_changed_(self.attr)
-    def get_untracked(self) -> Tuple[Literal[False], Literal["Abstract method"]:
+    def get_untracked(self) -> Tuple[Literal[False], Literal["Abstract method"]]:
         assert False, 'Abstract method'  # pragma: no cover
 
 def tracked_method(func):
