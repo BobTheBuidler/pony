@@ -54,7 +54,7 @@ def raw_sql(sql: str, result_type=None) -> "RawSQL":  # type: ignore [no-untyped
 
 @final
 class RawSQL:
-    def __deepcopy__(self, memo) -> Self:
+    def __deepcopy__(self, memo) -> Self:  # type: ignore[no-untyped-def]
         assert False  # should not attempt to deepcopy RawSQL instances, because of locals/globals
     def __init__(  # type: ignore[no-untyped-def]
         self,
