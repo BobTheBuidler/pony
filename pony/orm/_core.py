@@ -1,7 +1,7 @@
 # mypy: disable-error-code="var-annotated,has-type,union-attr"
 import itertools
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, Final, List, Optional, Tuple, final
+from typing import TYPE_CHECKING, Any, Dict, Final, List, Literal, Optional, Tuple, Union, final
 
 from pony.utils import localbase, throw
 
@@ -80,7 +80,7 @@ def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: Dict["Attribute"
         real_entity_subclass = entity
     else:
         discr_offset = attr_offsets[discr_attr][0]
-        discr_value = discr_attr.validate(row[discr_offset], None, entity, from_db=True)
+        discr_value = discr_attr.validate(row[discr_offset], None, entity, from_db=True)  # type: ignore [no-untyped-call]
         real_entity_subclass = discr_attr.code2cls[discr_value]
         discr_value = real_entity_subclass._discriminator_  # To convert str to str in Python 2.x
 
@@ -171,7 +171,7 @@ def _get_from_identity_map_(
                     obj._rbits_ = obj._wbits_ = None
                     for attr, val in zip(pk_attrs, pkval):
                         obj_vals[attr] = val
-                        if attr.reverse: attr.update_reverse(obj, NOT_LOADED, val, undo_funcs)  # type: ignore [no-untyped-call]
+                        if attr.reverse: attr.update_reverse(obj, NOT_LOADED, val, undo_funcs)
                     cache.for_update.add(obj)
                 else: assert False  # pragma: no cover
             else:
@@ -186,7 +186,7 @@ def _get_from_identity_map_(
                     assert undo_funcs is not None
                     obj._rbits_ = obj._wbits_ = None
                     obj._vals_[attr] = pkval
-                    if attr.reverse: attr.update_reverse(obj, NOT_LOADED, pkval, undo_funcs)  # type: ignore [no-untyped-call]
+                    if attr.reverse: attr.update_reverse(obj, NOT_LOADED, pkval, undo_funcs)
                     cache.for_update.add(obj)
                 else: assert False  # pragma: no cover
     if for_update:
@@ -208,7 +208,7 @@ def _get_by_raw_pkval_(
         if attr.column is not None:
             val = raw_pkval[i]
             i += 1
-            if not attr.reverse: val = attr.validate(val, None, entity, from_db=from_db)
+            if not attr.reverse: val = attr.validate(val, None, entity, from_db=from_db)  # type: ignore [no-untyped-call]
             else: val = _get_by_raw_pkval_(attr.py_type, (val,), from_db=from_db, seed=seed)
         elif not attr.reverse:
             throw(NotImplementedError)
@@ -224,7 +224,7 @@ def _get_by_raw_pkval_(
     return obj
   
 
-def _db_set_(obj: "Entity", avdict: Dict["Attribute", Any], unpickling: bool = False) -> None:  # type: ignore [type-arg]
+def _db_set_(obj: "Entity", avdict: Dict["Attribute", Any], unpickling: bool = False) -> None:
     attr: "Attribute"
   
     assert obj._status_ not in created_or_deleted_statuses
@@ -233,8 +233,8 @@ def _db_set_(obj: "Entity", avdict: Dict["Attribute", Any], unpickling: bool = F
     cache.seeds[obj._pk_attrs_].discard(obj)  # type: ignore [attr-defined]
     if not avdict: return
 
-    obj_vals: Dict["Attribute", Any] = obj._vals_
-    obj_dbvals: Dict["Attribute", Any] = obj._dbvals_
+    obj_vals: Dict["Attribute", Any] = obj._vals_  # type: ignore [attr-defined]
+    obj_dbvals: Dict["Attribute", Any] = obj._dbvals_  # type: ignore [attr-defined]
   
     rbits = obj._rbits_
     wbits = obj._wbits_
@@ -294,7 +294,12 @@ def _db_set_(obj: "Entity", avdict: Dict["Attribute", Any], unpickling: bool = F
     obj_vals.update(new_vals)
 
 
-def db_update_reverse(attr: "Attribute", obj: "Entity", old_dbval: Any, new_dbval: Any) -> None:
+def db_update_reverse(
+    attr: "Attribute",
+    obj: "Entity",
+    old_dbval: Optional[Union["Entity", NotLoadedValueType]],
+    new_dbval: Optional["Entity"],
+) -> None:
     reverse = attr.reverse
     if reverse is None: throw(NotImplementedError)
     if not reverse.is_collection:
