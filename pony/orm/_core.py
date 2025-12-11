@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, Final, List, Literal, Optional, Tup
 from pony.utils import localbase, throw
 
 if TYPE_CHECKING:
-    from pony.orm.core import Attribute, DBSessionContextManager, Entity, EntityMeta, Local, PrefetchContext, Set
+    from pony.orm.core import Attribute, DBSessionContextManager, Entity, EntityMeta, Local, PrefetchContext, QueryResult, Set
 
 
 statuses = {'created', 'cancelled', 'loaded', 'modified', 'inserted', 'updated', 'marked_to_delete', 'deleted'}
