@@ -1738,32 +1738,35 @@ class QueryStat(object):
 
 num_counter = itertools.count()
 
-class SessionCache(object):
-    def __init__(cache, database):
-        cache.is_alive = True
+@final
+class SessionCache:
+    def __init__(cache, database: Database) -> None:
+        cache.is_alive: bool = True
         cache.num = next(num_counter)
         cache.database = database
-        cache.objects = set()
+        cache.objects: Set["Entity"] = set()
         cache.indexes = defaultdict(dict)
         cache.seeds = defaultdict(set)
         cache.max_id_cache = {}
         cache.collection_statistics = {}
         cache.for_update = set()
-        cache.noflush_counter = 0
+        cache.noflush_counter: int = 0
         cache.modified_collections = defaultdict(set)
-        cache.objects_to_save = []
-        cache.saved_objects = []
+        cache.objects_to_save: List["Entity"] = []
+        cache.saved_objects: List[Tuple["Entity", str]] = []
         cache.query_results = {}
         cache.dbvals_deduplication_cache = defaultdict(dict)
-        cache.modified = False
+        cache.modified: bool = False
         cache.db_session = db_session = local.db_session
-        cache.immediate = db_session is not None and db_session.immediate
-        cache.connection = None
-        cache.in_transaction = False
+        cache.immediate: bool = db_session is not None and db_session.immediate
+        cache.connection: Any = None
+        cache.in_transaction: bool = False
         cache.saved_fk_state = None
-        cache.perm_cache = defaultdict(lambda : defaultdict(dict))  # user -> perm -> cls_or_attr_or_obj -> bool
-        cache.user_roles_cache = defaultdict(dict)  # user -> obj -> roles
-        cache.obj_labels_cache = {}  # obj -> labels
+        cache.perm_cache: DefaultDict[str, DefaultDict[int, Dict[str, bool]]] = defaultdict(  # user -> perm -> cls_or_attr_or_obj -> bool
+            lambda : defaultdict(dict)
+        )
+        cache.user_roles_cache: DefaultDict[str, Dict[str, str]] = defaultdict(dict)  # user -> obj -> roles
+        cache.obj_labels_cache: Dict["Entity", List[str]] = {}  # obj -> labels
     def connect(cache):
         assert cache.connection is None
         if cache.in_transaction: throw(ConnectionClosedError,
@@ -1838,7 +1841,7 @@ class SessionCache(object):
         cache.close(rollback=True)
     def release(cache):
         cache.close(rollback=False)
-    def close(cache, rollback=True):
+    def close(cache, rollback: bool = True):
         assert cache.is_alive
         if not rollback: assert not cache.in_transaction
         database = cache.database
@@ -1873,11 +1876,11 @@ class SessionCache(object):
                 = cache.indexes = cache.seeds = cache.for_update = cache.max_id_cache \
                 = cache.modified_collections = cache.collection_statistics = cache.dbvals_deduplication_cache = None
     @contextmanager
-    def flush_disabled(cache):
+    def flush_disabled(cache) -> Iterator[None]:
         cache.noflush_counter += 1
         try: yield
         finally: cache.noflush_counter -= 1
-    def flush(cache):
+    def flush(cache) -> None:
         if cache.noflush_counter: return
         assert cache.is_alive
         assert not cache.saved_objects
