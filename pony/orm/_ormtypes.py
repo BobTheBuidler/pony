@@ -94,7 +94,7 @@ class RawSQLType:
 
 
 # TODO: add overloads
-def normalize(value: Any) -> Tuple[type, Any]:
+def normalize(value: Any) -> Tuple[Any, Any]:
     value = deref_proxy(value)  # type: ignore [no-untyped-call]
     t = type(value)
     if t is tuple:
