@@ -2035,8 +2035,7 @@ class Attribute(object):
         attr.nullable: Optional[bool] = kwargs.pop('nullable', None)
         attr.is_part_of_unique_index = attr.is_unique  # Also can be set to True later
         attr.is_pk = isinstance(attr, PrimaryKey)
-        if attr.is_pk: attr.pk_offset = 0
-        else: attr.pk_offset = None
+        attr.pk_offset = 0 if attr.is_pk else None
         attr.id = next(attr_id_counter)
         if not isinstance(py_type, (type, str, types.FunctionType, Array)):
             if py_type is datetime: throw(TypeError,
