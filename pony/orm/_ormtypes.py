@@ -1,6 +1,6 @@
 import sys
 import types
-from typing import Any, Dict, Final, List, Optional, Tuple, final
+from typing import Any, Dict, Final, List, Optional, Tuple, Union, final
 
 from typing_extensions import Self
 
@@ -8,7 +8,8 @@ from pony.utils import throw, parse_expr, deref_proxy
 
 
 NoneType: Final = type(None)
-Parsed = Tuple[Tuple[Tuple[str, types.CodeType], ...], Tuple[types.CodeType, ...]]
+Item = Union[str, Tuple[str, types.CodeType]]
+Parsed = Tuple[Tuple[Item, ...], Tuple[types.CodeType, ...]]
 
 raw_sql_cache: Final[Dict[str, Parsed]] = {}
 
@@ -20,7 +21,7 @@ def parse_raw_sql(sql: str) -> Parsed:
     if result is not None: return result
     if not isinstance(sql, str) or not sql:
         throw(TypeError, "Raw SQL string fragment expected. Got: %r" % sql)
-    items: List[Tuple[str, types.CodeType]] = []
+    items: List[Item] = []
     codes: List[types.CodeType] = []
     pos = 0
     while True:
