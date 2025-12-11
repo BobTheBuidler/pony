@@ -319,7 +319,7 @@ class QueryResultIterator:
     def __init__(self, query_result: "QueryResult") -> None:
         self._query_result: Final = query_result
         self._position: int = 0
-    def _get_type_(self) -> type:
+    def _get_type_(self):  # type: ignore [no-untyped-def]
         if self._position != 0:
             throw(NotImplementedError, 'Cannot use partially exhausted iterator, please convert to list')
         return self._query_result._get_type_()  # type: ignore [no-untyped-call]
