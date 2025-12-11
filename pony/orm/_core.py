@@ -115,6 +115,7 @@ def _get_from_identity_map_(
     obj_to_init: Any = None,
 ) -> Any:
     attr: "Attribute"
+    obj: Optional["Entity"]
   
     cache = entity._database_._get_cache()  # type: ignore [union-attr]
     pk_attrs = entity._pk_attrs_
@@ -170,7 +171,7 @@ def _get_from_identity_map_(
                     obj._rbits_ = obj._wbits_ = None
                     for attr, val in zip(pk_attrs, pkval):
                         obj_vals[attr] = val
-                        if attr.reverse: attr.update_reverse(obj, NOT_LOADED, val, undo_funcs)
+                        if attr.reverse: attr.update_reverse(obj, NOT_LOADED, val, undo_funcs)  # type: ignore [no-untyped-call]
                     cache.for_update.add(obj)
                 else: assert False  # pragma: no cover
             else:
@@ -185,7 +186,7 @@ def _get_from_identity_map_(
                     assert undo_funcs is not None
                     obj._rbits_ = obj._wbits_ = None
                     obj._vals_[attr] = pkval
-                    if attr.reverse: attr.update_reverse(obj, NOT_LOADED, pkval, undo_funcs)
+                    if attr.reverse: attr.update_reverse(obj, NOT_LOADED, pkval, undo_funcs)  # type: ignore [no-untyped-call]
                     cache.for_update.add(obj)
                 else: assert False  # pragma: no cover
     if for_update:
@@ -295,6 +296,7 @@ def _db_set_(obj: "Entity", avdict: dict, unpickling: bool = False) -> None:  # 
 
 def db_update_reverse(attr: "Attribute", obj: "Entity", old_dbval: Any, new_dbval: Any) -> None:
     reverse = attr.reverse
+    if reverse is None: throw(NotImplementedError)
     if not reverse.is_collection:
         if old_dbval not in (None, NOT_LOADED): reverse.db_set(old_dbval, NOT_LOADED, True)
         if new_dbval is not None: reverse.db_set(new_dbval, obj, True)
