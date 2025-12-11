@@ -8,7 +8,7 @@ from pony.utils import throw, parse_expr, deref_proxy
 
 
 NoneType: Final = type(None)
-Parsed = Tuple[Tuple[str, ...], Tuple[types.CodeType, ...]]
+Parsed = Tuple[Tuple[Tuple[str, types.CodeType], ...], Tuple[types.CodeType, ...]]
 
 raw_sql_cache: Final[Dict[str, Parsed]] = {}
 
@@ -20,7 +20,7 @@ def parse_raw_sql(sql: str) -> Parsed:
     if result is not None: return result
     if not isinstance(sql, str) or not sql:
         throw(TypeError, "Raw SQL string fragment expected. Got: %r" % sql)
-    items: List[str] = []
+    items: List[Tuple[str, types.CodeType]] = []
     codes: List[types.CodeType] = []
     pos = 0
     while True:
