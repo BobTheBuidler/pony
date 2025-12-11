@@ -1,4 +1,4 @@
-# mypy: disable-error-code="var-annotated"
+# mypy: disable-error-code="var-annotated,has-type,union-attr"
 import itertools
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Final, List, Optional, Tuple, final
@@ -298,8 +298,8 @@ def db_update_reverse(attr: "Attribute", obj: "Entity", old_dbval: Any, new_dbva
     reverse = attr.reverse
     if reverse is None: throw(NotImplementedError)
     if not reverse.is_collection:
-        if old_dbval not in (None, NOT_LOADED): reverse.db_set(old_dbval, NOT_LOADED, True)
-        if new_dbval is not None: reverse.db_set(new_dbval, obj, True)
+        if old_dbval not in (None, NOT_LOADED): reverse.db_set(old_dbval, NOT_LOADED, True)  # type: ignore [no-untyped-call]
+        if new_dbval is not None: reverse.db_set(new_dbval, obj, True)  # type: ignore [no-untyped-call]
     elif isinstance(reverse, Set):
         if old_dbval not in (None, NOT_LOADED): reverse.db_reverse_remove((old_dbval,), obj)
         if new_dbval is not None: reverse.db_reverse_add((new_dbval,), obj)
