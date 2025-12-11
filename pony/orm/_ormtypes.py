@@ -1,16 +1,19 @@
+import sys
 import types
-from typing import Dict, Final, Tuple
+from typing import Any, Dict, Final, Optional, Tuple, final
 
 from typing_extensions import Self
 
 from pony.utils import throw, parse_expr, deref_proxy
 
 
+NoneType: Final = type(None)
 Parsed = Tuple[Tuple[str, ...], Tuple[types.CodeType, ...]]
 
 raw_sql_cache: Final[Dict[str, Parsed]] = {}
 
 function_types = {type, types.FunctionType, types.BuiltinFunctionType}
+
 
 def parse_raw_sql(sql: str) -> Parsed:
     result = raw_sql_cache.get(sql)
@@ -53,7 +56,13 @@ def raw_sql(sql: str, result_type=None) -> "RawSQL":  # type: ignore [no-untyped
 class RawSQL:
     def __deepcopy__(self, memo) -> Self:
         assert False  # should not attempt to deepcopy RawSQL instances, because of locals/globals
-    def __init__(self, sql: str, globals: Dict[str, Any] = None, locals: Dict[str, Any] = None, result_type=None):  # type: ignore[no-untyped-def]
+    def __init__(  # type: ignore[no-untyped-def]
+        self,
+        sql: str,
+        globals: Optional[Dict[str, Any]] = None,
+        locals: Optional[Dict[str, Any]] = None,
+        result_type=None,
+    ) -> None:
         self.sql: Final = sql
         items, codes = parse_raw_sql(sql)
         self.items: Final = items
@@ -96,6 +105,7 @@ def normalize(value: Any) -> Tuple[Any, Any]:
         return tuple(item_types), tuple(item_values)
 
     if t.__name__ == 'EntityMeta':
+        from pony.orm.ormtypes import SetType
         return SetType(value), value
 
     if t.__name__ == 'EntityIter':
