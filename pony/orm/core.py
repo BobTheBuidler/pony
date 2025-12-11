@@ -3122,7 +3122,7 @@ class Set(Collection):
                 else: setdata.added.remove(item)
                 if not was_modified_earlier: objects_with_modified_collections.remove(obj)
         undo_funcs.append(undo_func)
-    def db_reverse_add(attr, objects: List["Entity"], item):
+    def db_reverse_add(attr, objects: Tuple["Entity", ...], item):
         for obj in objects:
             vals = obj._vals_
             setdata: Optional[SetData] = vals.get(attr)
