@@ -309,6 +309,6 @@ def db_update_reverse(
         
     from pony.orm.core import Set
     if isinstance(reverse, Set):
-        if old_dbval not in (None, NOT_LOADED): reverse.db_reverse_remove((old_dbval,), obj)
+        if old_dbval not in (None, NOT_LOADED): reverse.db_reverse_remove((old_dbval,), obj)  # type: ignore [no-untyped-call]
         if new_dbval is not None: reverse.db_reverse_add((new_dbval,), obj)
     else: throw(NotImplementedError)
