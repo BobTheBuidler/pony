@@ -1,5 +1,6 @@
 # These were in utils.py but we're not ready to compile the full file yet
 import ast
+import inspect
 import re
 import types
 from collections import defaultdict
@@ -13,7 +14,7 @@ _T = TypeVar("_T")
 Lambda: Final = ast.Lambda
 
 FunctionType: Final = types.FunctionType
-InstanceType: Final = types.InstanceType
+InstanceType: Final = types.InstanceType  # type: ignore [attr-defined]
 
 getargspec: Final = inspect.getargspec
 signature: Final = inspect.signature
@@ -148,30 +149,13 @@ def tostring(x: Any) -> str:
     if hasattr(x, '__unicode__'):
         try: return str(x)
         except: pass
-    if hasattr(x, 'makeelement'): return cElementTree.tostring(x)
+    if hasattr(x, 'makeelement'): return cElementTree.tostring(x)  # type: ignore [return-value]
     try: return str(x)
     except: pass
     try: return repr(x)
     except: pass
     if type(x) == InstanceType: return '<%s instance at 0x%X>' % (x.__class__.__name__)
     return '<%s object at 0x%X>' % (x.__class__.__name__)
-
-def strjoin(
-    sep: str,
-    strings: Iterable[str],
-    source_encoding: str = 'ascii',
-    dest_encoding: str | None = None,
-) -> str:
-    "Can join mix of str and byte strings in different encodings"
-    strings = list(strings)
-    try: return sep.join(strings)
-    except UnicodeDecodeError: pass
-    for i, s in enumerate(strings):
-        if isinstance(s, str):
-            strings[i] = s.decode(source_encoding, 'replace').replace(u'\ufffd', '?')
-    result = sep.join(strings)
-    if dest_encoding is None: return result
-    return result.encode(dest_encoding, 'replace')
 
 @overload
 def group_concat(items: Iterable[Any], sep: Any = ',') -> str:
