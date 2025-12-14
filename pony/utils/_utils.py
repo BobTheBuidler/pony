@@ -6,7 +6,7 @@ import types
 from collections import defaultdict
 from datetime import datetime
 from time import strptime
-from typing import Any, DefaultDict, Final, Iterable, TypeVar, overload
+from typing import Any, DefaultDict, Final, Iterable, TypeVar, cast, overload
 from xml.etree import cElementTree
 
 _T = TypeVar("_T")
@@ -16,7 +16,7 @@ Lambda: Final = ast.Lambda
 FunctionType: Final = types.FunctionType
 InstanceType: Final = types.InstanceType  # type: ignore [attr-defined]
 
-getargspec: Final = inspect.getargspec
+getargspec: Final = inspect.getargspec  # type: ignore [attr-defined]
 signature: Final = inspect.signature
 
 _CACHE_MAXSIZE: Final = 10_000
@@ -172,7 +172,7 @@ def coalesce(*args: _T) -> _T:
     for arg in args:
         if arg is not None:
             return arg
-    return None
+    return cast(_T, None)
 
 def distinct(iter: Iterable[_T]) -> DefaultDict[_T, int]:
     d: DefaultDict[_T, int] = defaultdict(int)
@@ -189,7 +189,8 @@ def truncate_repr(s: Any, max_len: int = 100) -> str:
 
 lambda_args_cache: Final[dict[int | ast.Lambda, list[str]]] = {}
 
-def get_lambda_args(func: types.FunctionType | ast.Lambda):
+cache_key: int | ast.Lambda
+def get_lambda_args(func: types.FunctionType | ast.Lambda) -> list[str]:
     if type(func) is FunctionType:
         codeobject = func.__code__
         cache_key = get_codeobject_id(codeobject)
