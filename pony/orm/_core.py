@@ -347,7 +347,7 @@ class QueryResultIterator:
 adapted_sql_cache: Final[dict[tuple[str, str], tuple[str, types.CodeType]]] = {}
 
 def adapt_sql(sql: str, paramstyle: str) -> Any:
-    result: tuple[str, types.CodeType] = adapted_sql_cache.get((sql, paramstyle))
+    result: tuple[str, types.CodeType] | None = adapted_sql_cache.get((sql, paramstyle))
     if result is not None: return result
     pos: int = 0
     preresult: list[str] = []
