@@ -15,10 +15,11 @@ Lambda: Final = ast.Lambda
 
 FunctionType: Final = types.FunctionType
 
-# this doesnt exist, must be deprecated code
+# this doesnt exist, must be deprecated code ?
 # InstanceType: Final = types.InstanceType
 
-getargspec: Final = inspect.getargspec  # type: ignore [attr-defined]
+# this doesnt exist, must be deprecated code ?
+# getargspec: Final = inspect.getargspec
 signature: Final = inspect.signature
 
 _CACHE_MAXSIZE: Final = 10_000
@@ -228,7 +229,9 @@ def get_lambda_args(func: types.FunctionType | ast.Lambda) -> list[str]:
                     throw(TypeError, 'Keyword-only arguments like %s are not supported' % p.name)
                 else: assert False
         else:
-            names, argsname, kwname, defaults = getargspec(func)
+            # this doesnt exist, must be deprecated code ?
+            # names, argsname, kwname, defaults = getargspec(func)
+            assert False
     elif isinstance(func, Lambda):
         func_args = func.args
         argsname = func_args.vararg
