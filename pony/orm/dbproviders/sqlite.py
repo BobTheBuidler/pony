@@ -17,7 +17,7 @@ from pony.orm.ormtypes import Json, TrackedArray
 from pony.orm.sqltranslation import SQLTranslator, StringExprMonad
 from pony.orm.sqlbuilding import SQLBuilder, Value, join, make_unary_func
 from pony.orm.dbapiprovider import DBAPIProvider, Pool, wrap_dbapi_exceptions
-from pony.orm.dbproviders._sqlite import SQLiteValue, SQLiteDateConverter, SQLiteDatetimeConverter, SQLiteTimeConverter, SQLiteTimedeltaConverter
+from pony.orm.dbproviders._sqlite import SQLiteValue, SQLiteDateConverter, SQLiteDatetimeConverter, SQLiteTimeConverter, SQLiteTimedeltaConverter, dumps, json_path_re, path_cache, py_array_contains, py_array_index, py_array_length, py_array_slice, py_array_subset, py_json_array_length, py_json_contains, py_json_extract, py_json_nonzero, py_json_query, py_json_unwrap, py_json_value, py_make_array py_string_slice, wrap_array_func, _extract, _parse_path, _traverse
 from pony.utils import datetime2timestamp, timestamp2datetime, absolutize_path, localbase, throw, reraise, \
     cut_traceback_depth
 
@@ -220,9 +220,6 @@ class SQLiteDecimalConverter(dbapiprovider.DecimalConverter):
 
 class SQLiteJsonConverter(dbapiprovider.JsonConverter):
     json_kwargs = {'separators': (',', ':'), 'sort_keys': True, 'ensure_ascii': False}
-
-def dumps(items):
-    return json.dumps(items, **SQLiteJsonConverter.json_kwargs)
 
 class SQLiteArrayConverter(dbapiprovider.ArrayConverter):
     array_types = {
@@ -477,6 +474,8 @@ def make_string_function(name, base_func):
 py_upper = make_string_function('py_upper', str.upper)
 py_lower = make_string_function('py_lower', str.lower)
 
+###
+
 def py_json_unwrap(value):
     # "[null,some_json]" -> "some_json"
     if isinstance(value, str) and value.startswith('[null,'):
@@ -508,13 +507,17 @@ def _parse_path(path):
     path_cache[path] = keys
     return keys
 
-def _traverse(obj, keys):
+def _traverse(obj: Any, keys: Any) -> Any:
     if keys is None: return None
     list_or_dict = (list, dict)
     for key in keys:
-        if type(obj) not in list_or_dict: return None
-        try: obj = obj[key]
-        except (KeyError, IndexError): return None
+        if type(obj) is list:
+            try: obj = obj[key]
+            except IndexError: return None
+        elif type(obj) is dict:
+            try: obj = obj[key]
+            except KeyError: return None
+        else: return None
     return obj
 
 def _extract(expr, *paths):
