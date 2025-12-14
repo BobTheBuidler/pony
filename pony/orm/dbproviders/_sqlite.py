@@ -161,8 +161,8 @@ def wrap_array_func(func: Callable[Concatenate[_L, _P], _T]) -> Callable[Concate
         if array_json is None:
             return None
         array = _loads(array_json)
-        return func(array, *args)
-    return new_func
+        return func(array, *args)  # type: ignore [call-arg]
+    return new_func  # type: ignore [return-value]
 
 @wrap_array_func
 def py_array_index(array: list[_T], index: int) -> _T | None:
