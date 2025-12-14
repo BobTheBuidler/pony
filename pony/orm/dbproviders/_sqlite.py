@@ -1,5 +1,6 @@
 import re
 import datetime, json, time
+from functools import wraps
 from typing import Any, Callable, Final, TypeVar, cast, overload
 
 from typing_extensions import Concatenate, ParamSpec
@@ -60,7 +61,8 @@ class SQLiteDatetimeConverter(dbapiprovider.DatetimeConverter):
         return datetime2timestamp(val)
     
 
-def dumps(items):
+def dumps(items: Any) -> str:
+    from pony.orm.dbproviders.sqlite import SQLiteJsonConverter
     return _dumps(items, **SQLiteJsonConverter.json_kwargs)
 
 def py_json_unwrap(value: Any) -> str | None:
@@ -76,7 +78,7 @@ json_path_re: Final = re.compile(r'\[(-?\d+)\]|\.(?:(\w+)|"([^"]*)")', re.UNICOD
 def _parse_path(path: Any) -> Any:
     if path in path_cache:
         return path_cache[path]
-    keys = None
+    keys: Any = None
     if isinstance(path, str) and path.startswith('$'):
         keys = []
         pos = 1
