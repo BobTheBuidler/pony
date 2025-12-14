@@ -61,7 +61,7 @@ class SQLiteDatetimeConverter(dbapiprovider.DatetimeConverter):
         return datetime2timestamp(val)
 
 class SQLiteJsonConverter(dbapiprovider.JsonConverter):
-    json_kwargs: Final = {'separators': (',', ':'), 'sort_keys': True, 'ensure_ascii': False}
+    json_kwargs = {'separators': (',', ':'), 'sort_keys': True, 'ensure_ascii': False}
 
 
 def dumps(items: Any) -> str:
@@ -122,7 +122,7 @@ def _extract(expr: str, *paths: Any) -> Any:
 def py_json_extract(expr: str, *paths: Any) -> str:
     result = _extract(expr, *paths)
     if type(result) in (list, dict):
-        result = _dumps(result, **SQLiteJsonConverter.json_kwargs)  # type: ignore [
+        result = _dumps(result, **SQLiteJsonConverter.json_kwargs)  # type: ignore [arg-type]
     return result
 
 def py_json_query(expr: str, path: Any, with_wrapper: bool) -> str:
@@ -130,25 +130,25 @@ def py_json_query(expr: str, path: Any, with_wrapper: bool) -> str:
     if type(result) not in (list, dict):
         if not with_wrapper: return None
         result = [result]
-    return _dumps(result, **SQLiteJsonConverter.json_kwargs)
+    return _dumps(result, **SQLiteJsonConverter.json_kwargs)  # type: ignore [arg-type]
 
 def py_json_value(expr: str, path: Any) -> Any:
     result = _extract(expr, path)
     return result if type(result) not in (list, dict) else None
 
-def py_json_contains(expr: str, path: Any, key: Any) -> bool:
+def py_json_contains(expr: Any, path: Any, key: Any) -> bool:
     expr = _loads(expr) if isinstance(expr, str) else expr
     keys = _parse_path(path)
     expr = _traverse(expr, keys)
     return type(expr) in (list, dict) and key in expr
 
-def py_json_nonzero(expr: str, path: Any) -> bool:
+def py_json_nonzero(expr: Any, path: Any) -> bool:
     expr = _loads(expr) if isinstance(expr, str) else expr
     keys = _parse_path(path)
     expr = _traverse(expr, keys)
     return bool(expr)
 
-def py_json_array_length(expr: str, path: Any = None) -> int:
+def py_json_array_length(expr: Any, path: Any = None) -> int:
     expr = _loads(expr) if isinstance(expr, str) else expr
     if path:
         keys = _parse_path(path)
