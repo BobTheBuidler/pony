@@ -16,7 +16,7 @@ import pony
 from pony import options
 
 from pony.thirdparty.decorator import decorator as _decorator
-from pony.utils._utils import camelcase_name, current_timestamp, datetime2timestamp, is_ident, lowercase_name, mixedcase_name, split_name, timestamp2datetime, uppercase_name
+from pony.utils._utils import camelcase_name, coalesce, codeobjects, current_timestamp, datetime2timestamp, distinct, get_codeobject_id, group_concat, is_ident, is_utf8, lowercase_name, mixedcase_name, parse_expr, split_name, strjoin, timestamp2datetime, tostring, uppercase_name
 
 if pony.MODE.startswith('GAE-'): localbase = object
 else: from threading import local as localbase
@@ -107,14 +107,6 @@ def truncate_repr(s, max_len=100):
     s = repr(s)
     return s if len(s) <= max_len else s[:max_len-3] + '...'
 
-codeobjects = {}
-
-def get_codeobject_id(codeobject):
-    codeobject_id = id(codeobject)
-    if codeobject_id not in codeobjects:
-        codeobjects[codeobject_id] = codeobject
-    return codeobject_id
-
 lambda_args_cache = {}
 
 def get_lambda_args(func):
@@ -191,86 +183,6 @@ def absolutize_path(filename, frame_depth):
     code_path = os.path.dirname(code_filename)
     return os.path.join(code_path, filename)
 
-expr1_re = re.compile(r'''
-        ([A-Za-z_]\w*)  # identifier (group 1)
-    |   ([(])           # open parenthesis (group 2)
-    ''', re.VERBOSE)
-
-expr2_re = re.compile(r'''
-     \s*(?:
-            (;)                 # semicolon (group 1)
-        |   (\.\s*[A-Za-z_]\w*) # dot + identifier (group 2)
-        |   ([([])              # open parenthesis or braces (group 3)
-        )
-    ''', re.VERBOSE)
-
-expr3_re = re.compile(r"""
-        [()[\]]                   # parenthesis or braces (group 1)
-    |   '''(?:[^\\]|\\.)*?'''     # '''triple-quoted string'''
-    |   \"""(?:[^\\]|\\.)*?\"""   # \"""triple-quoted string\"""
-    |   '(?:[^'\\]|\\.)*?'        # 'string'
-    |   "(?:[^"\\]|\\.)*?"        # "string"
-    """, re.VERBOSE)
-
-def parse_expr(s: str, pos: int = 0) -> Tuple[str, bool]:
-    z = 0
-    match = expr1_re.match(s, pos)
-    if match is None: raise ValueError()
-    start = pos
-    i = match.lastindex
-    if i == 1: pos = match.end()  # identifier
-    elif i == 2: z = 2  # "("
-    else: assert False  # pragma: no cover
-    while True:
-        match = expr2_re.match(s, pos)
-        if match is None: return s[start:pos], z==1
-        pos = match.end()
-        i = match.lastindex
-        if i == 1: return s[start:pos], False  # ";" - explicit end of expression
-        elif i == 2: z = 2  # .identifier
-        elif i == 3:  # "(" or "["
-            pos = match.end()
-            counter = 1
-            open = match.group(i)
-            if open == '(': close = ')'
-            elif open == '[': close = ']'; z = 2
-            else: assert False  # pragma: no cover
-            while True:
-                match = expr3_re.search(s, pos)
-                if match is None: raise ValueError()
-                pos = match.end()
-                x = match.group()
-                if x == open: counter += 1
-                elif x == close:
-                    counter -= 1
-                    if not counter: z += 1; break
-        else: assert False  # pragma: no cover
-
-def tostring(x: Any) -> str:
-    if isinstance(x, str): return x
-    if hasattr(x, '__unicode__'):
-        try: return str(x)
-        except: pass
-    if hasattr(x, 'makeelement'): return cElementTree.tostring(x)
-    try: return str(x)
-    except: pass
-    try: return repr(x)
-    except: pass
-    if type(x) == types.InstanceType: return '<%s instance at 0x%X>' % (x.__class__.__name__)
-    return '<%s object at 0x%X>' % (x.__class__.__name__)
-
-def strjoin(sep, strings, source_encoding='ascii', dest_encoding=None):
-    "Can join mix of str and byte strings in different encodings"
-    strings = list(strings)
-    try: return sep.join(strings)
-    except UnicodeDecodeError: pass
-    for i, s in enumerate(strings):
-        if isinstance(s, str):
-            strings[i] = s.decode(source_encoding, 'replace').replace(u'\ufffd', '?')
-    result = sep.join(strings)
-    if dest_encoding is None: return result
-    return result.encode(dest_encoding, 'replace')
-
 def count(*args, **kwargs):
     if kwargs: return _count(*args, **kwargs)
     if len(args) != 1: return _count(*args)
@@ -290,31 +202,8 @@ def avg(iter):
     if not count: return None
     return sum / count
 
-def group_concat(items, sep=','):
-    if items is None:
-        return None
-    return str(sep).join(str(item) for item in items)
-
-def coalesce(*args):
-    for arg in args:
-        if arg is not None:
-            return arg
-    return None
-
-def distinct(iter):
-    d = defaultdict(int)
-    for item in iter:
-        d[item] = d[item] + 1
-    return d
-
-def concat(*args):
-    return ''.join(tostring(arg) for arg in args)
-
 def between(x, a, b):
     return a <= x <= b
-
-def is_utf8(encoding):
-    return encoding.upper().replace('_', '').replace('-', '') in ('UTF8', 'UTF', 'U8')
 
 def _persistent_id(obj):
     if obj is Ellipsis:
