@@ -1,4 +1,5 @@
 # These were in utils.py but we're not ready to compile the full file yet
+import ast
 import re
 import types
 from collections import defaultdict
@@ -8,7 +9,13 @@ from typing import Any, DefaultDict, Dict, Final, Iterable, List, TypeVar, overl
 
 _T = TypeVar("_T")
 
+Lambda: Final = ast.Lambda
+
+FunctionType: Final = types.FunctionType
 InstanceType: Final = types.InstanceType
+
+getargspec: Final = inspect.getargspec
+signature: Final = inspect.signature
 
 _CACHE_MAXSIZE: Final = 10_000
 _TIMESTAMP_TO_DATETIME: Final[Dict[str, datetime]] = {}
@@ -191,9 +198,71 @@ def distinct(iter: Iterable[_T]) -> DefaultDict[_T, int]:
 def concat(*args: Any) -> str:
     return ''.join(map(tostring, args))
 
-codeobjects: Final[dict[int, object]] = {}
+def truncate_repr(s: Any, max_len: int = 100) -> str:
+    s = repr(s)
+    return s if len(s) <= max_len else s[:max_len-3] + '...'
 
-def get_codeobject_id(codeobject: object) -> int:
+lambda_args_cache: Final[dict[int | ast.Lambda, list[str]]] = {}
+
+def get_lambda_args(func: types.FunctionType | ast.Lambda):
+    if type(func) is FunctionType:
+        codeobject = func.__code__
+        cache_key = get_codeobject_id(codeobject)
+    elif isinstance(func, Lambda):
+        cache_key = func
+    else: assert False  # pragma: no cover
+
+    names = lambda_args_cache.get(cache_key)
+    if names is not None: return names
+
+    argsname: str | None
+    kwname: str | None
+    defaults: list[str]
+    
+    if type(func) is FunctionType:
+        if hasattr(inspect, 'signature'):
+            names, argsname, kwname, defaults = [], None, None, []
+            for p in signature(func).parameters.values():
+                if p.default is not p.empty:
+                    defaults.append(p.default)
+
+                if p.kind == p.POSITIONAL_OR_KEYWORD:
+                    names.append(p.name)
+                elif p.kind == p.VAR_POSITIONAL:
+                    argsname = p.name
+                elif p.kind == p.VAR_KEYWORD:
+                    kwname = p.name
+                elif p.kind == p.POSITIONAL_ONLY:
+                    throw(TypeError, 'Positional-only arguments like %s are not supported' % p.name)
+                elif p.kind == p.KEYWORD_ONLY:
+                    throw(TypeError, 'Keyword-only arguments like %s are not supported' % p.name)
+                else: assert False
+        else:
+            names, argsname, kwname, defaults = getargspec(func)
+    elif isinstance(func, Lambda):
+        func_args = func.args
+        argsname = func_args.vararg
+        kwname = func_args.kwarg
+        defaults = func_args.defaults + func_args.kw_defaults
+        names = [arg.arg for arg in func_args.args]
+    else: assert False  # pragma: no cover
+    
+    if argsname:
+        from pony.utils.utils import throw
+        throw(TypeError, '*%s is not supported' % argsname)
+    if kwname:
+        from pony.utils.utils import throw
+        throw(TypeError, '**%s is not supported' % kwname)
+    if defaults:
+        from pony.utils.utils import throw
+        throw(TypeError, 'Defaults are not supported')
+
+    lambda_args_cache[cache_key] = names
+    return names
+
+codeobjects: Final[dict[int, types.CodeType]] = {}
+
+def get_codeobject_id(codeobject: types.CodeType) -> int:
     codeobject_id = id(codeobject)
     if codeobject_id not in codeobjects:
         codeobjects[codeobject_id] = codeobject
