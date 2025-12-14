@@ -12,10 +12,10 @@ if TYPE_CHECKING:
     from pony.orm.ormtypes import QueryType
 
 
-statuses = {'created', 'cancelled', 'loaded', 'modified', 'inserted', 'updated', 'marked_to_delete', 'deleted'}
-del_statuses = {'marked_to_delete', 'deleted', 'cancelled'}
-created_or_deleted_statuses = {'created'} | del_statuses
-saved_statuses = {'inserted', 'updated', 'deleted'}
+statuses: Final = {'created', 'cancelled', 'loaded', 'modified', 'inserted', 'updated', 'marked_to_delete', 'deleted'}
+del_statuses: Final = {'marked_to_delete', 'deleted', 'cancelled'}
+created_or_deleted_statuses: Final = {'created'} | del_statuses
+saved_statuses: Final = {'inserted', 'updated', 'deleted'}
 
 
 '''
