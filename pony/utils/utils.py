@@ -10,13 +10,13 @@ from collections import defaultdict
 from functools import update_wrapper, wraps
 from xml.etree import cElementTree
 from copy import deepcopy
-from typing import Any, NoReturn, Tuple, Type, Union
+from typing import Any, Iterable, NoReturn, Type
 
 import pony
 from pony import options
 
 from pony.thirdparty.decorator import decorator as _decorator
-from pony.utils._utils import camelcase_name, coalesce, codeobjects, current_timestamp, datetime2timestamp, distinct, get_codeobject_id, get_lambda_args, group_concat, is_ident, is_utf8, lambda_args_cache, lowercase_name, mixedcase_name, parse_expr, split_name, strjoin, timestamp2datetime, tostring, truncate_repr, uppercase_name
+from pony.utils._utils import camelcase_name, coalesce, codeobjects, current_timestamp, datetime2timestamp, distinct, get_codeobject_id, get_lambda_args, group_concat, is_ident, is_utf8, lambda_args_cache, lowercase_name, mixedcase_name, parse_expr, split_name, timestamp2datetime, tostring, truncate_repr, uppercase_name
 
 if pony.MODE.startswith('GAE-'): localbase = object
 else: from threading import local as localbase
@@ -90,7 +90,7 @@ def reraise(exc_type, exc, tb):
     try: raise exc.with_traceback(tb)
     finally: del exc, tb
 
-def throw(exc_type: Union[Type[Exception], Exception], *args: Any, **kwargs: Any) -> NoReturn:
+def throw(exc_type: Type[Exception] | Exception, *args: Any, **kwargs: Any) -> NoReturn:
     if isinstance(exc_type, Exception):
         assert not args and not kwargs
         exc = exc_type
@@ -132,6 +132,23 @@ def absolutize_path(filename, frame_depth):
             raise EnvironmentError('Unexpected module filename, which is not absolute file path: %r' % code_filename)
     code_path = os.path.dirname(code_filename)
     return os.path.join(code_path, filename)
+
+def strjoin(
+    sep: str,
+    strings: Iterable[str],
+    source_encoding: str = 'ascii',
+    dest_encoding: str | None = None,
+) -> str:
+    "Can join mix of str and byte strings in different encodings"
+    strings = list(strings)
+    try: return sep.join(strings)
+    except UnicodeDecodeError: pass
+    for i, s in enumerate(strings):
+        if isinstance(s, str):
+            strings[i] = s.decode(source_encoding, 'replace').replace(u'\ufffd', '?')
+    result = sep.join(strings)
+    if dest_encoding is None: return result
+    return result.encode(dest_encoding, 'replace')
 
 def count(*args, **kwargs):
     if kwargs: return _count(*args, **kwargs)
