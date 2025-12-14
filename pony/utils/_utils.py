@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import datetime
 from time import strptime
 from typing import Any, DefaultDict, Final, Iterable, TypeVar, overload
+from xml.etree import cElementTree
 
 _T = TypeVar("_T")
 
@@ -214,10 +215,6 @@ def get_lambda_args(func: types.FunctionType | ast.Lambda):
 
     names = lambda_args_cache.get(cache_key)
     if names is not None: return names
-
-    argsname: str | None
-    kwname: str | None
-    defaults: list[str]
     
     if type(func) is FunctionType:
         if hasattr(inspect, 'signature'):
