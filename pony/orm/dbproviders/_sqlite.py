@@ -61,7 +61,7 @@ class SQLiteDatetimeConverter(dbapiprovider.DatetimeConverter):
         return datetime2timestamp(val)
 
 class SQLiteJsonConverter(dbapiprovider.JsonConverter):
-    json_kwargs: Final = {'separators': (',', ':'), 'sort_keys': True, 'ensure_ascii': False}
+    json_kwargs: Final = {'separators': (',', ':'), 'sort_keys': True, 'ensure_ascii': False}  # type: ignore [misc]
 
 
 def dumps(items: Any) -> str:
