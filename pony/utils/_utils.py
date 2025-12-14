@@ -184,8 +184,8 @@ def concat(*args: Any) -> str:
     return ''.join(map(tostring, args))
 
 def truncate_repr(s: Any, max_len: int = 100) -> str:
-    s: str = repr(s)
-    return s if len(s) <= max_len else s[:max_len-3] + '...'
+    r = repr(s)
+    return r if len(r) <= max_len else r[:max_len-3] + '...'
 
 lambda_args_cache: Final[dict[int | ast.Lambda, list[str]]] = {}
 
@@ -201,6 +201,9 @@ def get_lambda_args(func: types.FunctionType | ast.Lambda) -> list[str]:
 
     names = lambda_args_cache.get(cache_key)
     if names is not None: return names
+
+    argsname: Any
+    kwname: Any
     
     if type(func) is FunctionType:
         if hasattr(inspect, 'signature'):
