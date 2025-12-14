@@ -20,7 +20,7 @@ from typing_extensions import Self
 
 import pony
 from pony import options
-from pony.orm._core import DEFAULT, NOT_LOADED, QueryResultIterator, db_update_reverse, new_instance_id_counter, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
+from pony.orm._core import DEFAULT, NOT_LOADED, QueryResultIterator, adapt_sql, db_update_reverse, new_instance_id_counter, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
@@ -121,7 +121,6 @@ def args2str(args):
     elif isinstance(args, dict):
         return '{%s}' % ', '.join('%s:%s' % (repr(key), repr(val)) for key, val in sorted(args.items()))
 
-adapted_sql_cache = {}
 string2ast_cache = {}
 
 class OrmError(Exception): pass
@@ -220,61 +219,6 @@ class DatabaseContainsIncorrectValue(PonyRuntimeWarning):
 
 class DatabaseContainsIncorrectEmptyValue(DatabaseContainsIncorrectValue):
     pass
-
-def adapt_sql(sql, paramstyle):
-    result = adapted_sql_cache.get((sql, paramstyle))
-    if result is not None: return result
-    pos = 0
-    result = []
-    args = []
-    kwargs = {}
-    original_sql = sql
-    if paramstyle in ('format', 'pyformat'): sql = sql.replace('%', '%%')
-    while True:
-        try: i = sql.index('$', pos)
-        except ValueError:
-            result.append(sql[pos:])
-            break
-        result.append(sql[pos:i])
-        if sql[i+1] == '$':
-            result.append('$')
-            pos = i+2
-        else:
-            try: expr, _ = parse_expr(sql, i+1)
-            except ValueError:
-                raise # TODO
-            pos = i+1 + len(expr)
-            if expr.endswith(';'): expr = expr[:-1]
-            compile(expr, '<?>', 'eval')  # expr correction check
-            if paramstyle == 'qmark':
-                args.append(expr)
-                result.append('?')
-            elif paramstyle == 'format':
-                args.append(expr)
-                result.append('%s')
-            elif paramstyle == 'numeric':
-                args.append(expr)
-                result.append(':%d' % len(args))
-            elif paramstyle == 'named':
-                key = 'p%d' % (len(kwargs) + 1)
-                kwargs[key] = expr
-                result.append(':' + key)
-            elif paramstyle == 'pyformat':
-                key = 'p%d' % (len(kwargs) + 1)
-                kwargs[key] = expr
-                result.append('%%(%s)s' % key)
-            else: throw(NotImplementedError)
-    if args or kwargs:
-        adapted_sql = ''.join(result)
-        if args: source = '(%s,)' % ', '.join(args)
-        else: source = '{%s}' % ','.join('%r:%s' % item for item in kwargs.items())
-        code = compile(source, '<?>', 'eval')
-    else:
-        adapted_sql = original_sql.replace('$$', '$')
-        code = compile('None', '<?>', 'eval')
-    result = adapted_sql, code
-    adapted_sql_cache[(sql, paramstyle)] = result
-    return result
 
 
 class PrefetchContext(object):
