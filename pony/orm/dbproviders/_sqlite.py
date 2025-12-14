@@ -123,9 +123,9 @@ def py_json_extract(expr: str, *paths: Any) -> str:
     result = _extract(expr, *paths)
     if type(result) in (list, dict):
         result = _dumps(result, **SQLiteJsonConverter.json_kwargs)  # type: ignore [arg-type]
-    return result
+    return result  # type: ignore [no-any-return]
 
-def py_json_query(expr: str, path: Any, with_wrapper: bool) -> str:
+def py_json_query(expr: str, path: Any, with_wrapper: bool) -> str | None:
     result = _extract(expr, path)
     if type(result) not in (list, dict):
         if not with_wrapper: return None
@@ -155,12 +155,12 @@ def py_json_array_length(expr: Any, path: Any = None) -> int:
         expr = _traverse(expr, keys)
     return len(expr) if type(expr) is list else 0
 
-def wrap_array_func(func: Callable[Concatenate[_L, _P], _T]) -> Callable[Concatenate[_L, _P], _T]:
+def wrap_array_func(func: Callable[Concatenate[_L, _P], _T]) -> Callable[Concatenate[str | bytes | bytearray, _P], _T]:
     @wraps(func)
-    def new_func(array: _L, *args: _P.args, **_: _P.kwargs) -> _T:
-        if array is None:
+    def new_func(array_json: str | bytes | bytearray | None, *args: _P.args, **_: _P.kwargs) -> _T | None:
+        if array_json is None:
             return None
-        array = _loads(array)
+        array = _loads(array_json)
         return func(array, *args)
     return new_func
 
