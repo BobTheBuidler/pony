@@ -14,7 +14,9 @@ _T = TypeVar("_T")
 Lambda: Final = ast.Lambda
 
 FunctionType: Final = types.FunctionType
-InstanceType: Final = types.InstanceType  # type: ignore [attr-defined]
+
+# this doesnt exist, must be deprecated code
+# InstanceType: Final = types.InstanceType
 
 getargspec: Final = inspect.getargspec  # type: ignore [attr-defined]
 signature: Final = inspect.signature
@@ -154,8 +156,10 @@ def tostring(x: Any) -> str:
     except: pass
     try: return repr(x)
     except: pass
-    if type(x) == InstanceType: return '<%s instance at 0x%X>' % (x.__class__.__name__)
-    return '<%s object at 0x%X>' % (x.__class__.__name__)
+    # this doesnt exist, must be deprecated code
+    # if type(x) == InstanceType: return '<%s instance at 0x%X>' % (x.__class__.__name__)
+    # return '<%s object at 0x%X>' % (x.__class__.__name__)
+    assert False
 
 @overload
 def group_concat(items: Iterable[Any], sep: Any = ',') -> str:
