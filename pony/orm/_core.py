@@ -5,6 +5,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, Final, Literal, Optional, Union, cast, final
 
 from pony.utils import localbase, throw
+from pony.utils._utils import parse_expr
 
 if TYPE_CHECKING:
     from pony.orm.core import Attribute, DBSessionContextManager, Entity, EntityMeta, Local, PrefetchContext, QueryResult, Set
@@ -343,7 +344,7 @@ class QueryResultIterator:
         return len(self._query_result) - self._position
 
 
-adapted_sql_cache: Final[dict[tuple[str, str], Any]] = {}
+adapted_sql_cache: Final[dict[tuple[str, str], tuple[str, types.CodeType]]] = {}
 
 def adapt_sql(sql: str, paramstyle: str) -> Any:
     result: tuple[str, types.CodeType] = adapted_sql_cache.get((sql, paramstyle))
