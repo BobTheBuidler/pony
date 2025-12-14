@@ -184,13 +184,14 @@ def concat(*args: Any) -> str:
     return ''.join(map(tostring, args))
 
 def truncate_repr(s: Any, max_len: int = 100) -> str:
-    s = repr(s)
+    s: str = repr(s)
     return s if len(s) <= max_len else s[:max_len-3] + '...'
 
 lambda_args_cache: Final[dict[int | ast.Lambda, list[str]]] = {}
 
-cache_key: int | ast.Lambda
 def get_lambda_args(func: types.FunctionType | ast.Lambda) -> list[str]:
+    cache_key: int | ast.Lambda
+    
     if type(func) is FunctionType:
         codeobject = func.__code__
         cache_key = get_codeobject_id(codeobject)
