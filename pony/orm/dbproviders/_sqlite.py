@@ -59,11 +59,13 @@ class SQLiteDatetimeConverter(dbapiprovider.DatetimeConverter):
         except: return val
     def py2sql(converter, val: datetime.datetime) -> str:
         return datetime2timestamp(val)
-    
+
+class SQLiteJsonConverter(dbapiprovider.JsonConverter):
+    json_kwargs: Final = {'separators': (',', ':'), 'sort_keys': True, 'ensure_ascii': False}
+
 
 def dumps(items: Any) -> str:
-    from pony.orm.dbproviders.sqlite import SQLiteJsonConverter
-    return _dumps(items, **SQLiteJsonConverter.json_kwargs)
+    return _dumps(items, **SQLiteJsonConverter.json_kwargs)  # type: ignore [arg-type]
 
 def py_json_unwrap(value: Any) -> str | None:
     # "[null,some_json]" -> "some_json"
@@ -120,7 +122,7 @@ def _extract(expr: str, *paths: Any) -> Any:
 def py_json_extract(expr: str, *paths: Any) -> str:
     result = _extract(expr, *paths)
     if type(result) in (list, dict):
-        result = _dumps(result, **SQLiteJsonConverter.json_kwargs)
+        result = _dumps(result, **SQLiteJsonConverter.json_kwargs)  # type: ignore [
     return result
 
 def py_json_query(expr: str, path: Any, with_wrapper: bool) -> str:
