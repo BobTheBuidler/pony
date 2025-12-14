@@ -155,7 +155,7 @@ def py_json_array_length(expr: str, path: Any = None) -> int:
 
 def wrap_array_func(func: Callable[Concatenate[_L, _P], _T]) -> Callable[Concatenate[_L, _P], _T]:
     @wraps(func)
-    def new_func(array: _L, *args: _P.args) -> _T:
+    def new_func(array: _L, *args: _P.args, **_: _P.kwargs) -> _T:
         if array is None:
             return None
         array = _loads(array)
