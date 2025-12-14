@@ -17,7 +17,7 @@ from pony.orm.ormtypes import Json, TrackedArray
 from pony.orm.sqltranslation import SQLTranslator, StringExprMonad
 from pony.orm.sqlbuilding import SQLBuilder, Value, join, make_unary_func
 from pony.orm.dbapiprovider import DBAPIProvider, Pool, wrap_dbapi_exceptions
-from pony.orm.dbproviders._sqlite import SQLiteValue, SQLiteDateConverter, SQLiteDatetimeConverter, SQLiteTimeConverter, SQLiteTimedeltaConverter, \
+from pony.orm.dbproviders._sqlite import SQLiteJsonConverter, SQLiteDateConverter, SQLiteDatetimeConverter, SQLiteTimeConverter, SQLiteTimedeltaConverter, SQLiteValue, \
     dumps, json_path_re, path_cache, py_array_contains, py_array_index, py_array_length, py_array_slice, py_array_subset, py_json_array_length, \
     py_json_contains, py_json_extract, py_json_nonzero, py_json_query, py_json_unwrap, py_json_value, py_make_array, py_string_slice, wrap_array_func, \
     _extract, _parse_path, _traverse
@@ -220,9 +220,6 @@ class SQLiteDecimalConverter(dbapiprovider.DecimalConverter):
                 throw(ValueError, 'Cannot store %s Decimal value in database' % val)
             val = val.quantize(exp)
         return str(val)
-
-class SQLiteJsonConverter(dbapiprovider.JsonConverter):
-    json_kwargs = {'separators': (',', ':'), 'sort_keys': True, 'ensure_ascii': False}
 
 class SQLiteArrayConverter(dbapiprovider.ArrayConverter):
     array_types = {
