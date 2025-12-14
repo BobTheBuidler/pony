@@ -5,7 +5,7 @@ import types
 from collections import defaultdict
 from datetime import datetime
 from time import strptime
-from typing import Any, DefaultDict, Dict, Final, Iterable, List, TypeVar, overload
+from typing import Any, DefaultDict, Final, Iterable, TypeVar, overload
 
 _T = TypeVar("_T")
 
@@ -18,7 +18,7 @@ getargspec: Final = inspect.getargspec
 signature: Final = inspect.signature
 
 _CACHE_MAXSIZE: Final = 10_000
-_TIMESTAMP_TO_DATETIME: Final[Dict[str, datetime]] = {}
+_TIMESTAMP_TO_DATETIME: Final[dict[str, datetime]] = {}
 
 def current_timestamp() -> str:
     return datetime2timestamp(datetime.now())
@@ -61,7 +61,7 @@ _name_parts_re: Final = re.compile(r'''
         |   _+                      # underscores
         ''', re.VERBOSE)
 
-def split_name(name: str) -> List[str]:
+def split_name(name: str) -> list[str]:
     "split_name('Some_FUNNYName') -> ['Some', 'FUNNY', 'Name']"
     if not _ident_re.match(name):
         raise ValueError('Name is not correct Python identifier')
@@ -108,7 +108,7 @@ expr3_re: Final = re.compile(r"""
     |   "(?:[^"\\]|\\.)*?"        # "string"
     """, re.VERBOSE)
 
-def parse_expr(s: str, pos: int = 0) -> Tuple[str, bool]:
+def parse_expr(s: str, pos: int = 0) -> tuple[str, bool]:
     z = 0
     match = expr1_re.match(s, pos)
     if match is None: raise ValueError()
