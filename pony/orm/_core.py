@@ -1,7 +1,8 @@
 # mypy: disable-error-code="var-annotated,has-type,union-attr"
 import itertools
+import types
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, Final, List, Literal, Optional, Tuple, Union, cast, final
+from typing import TYPE_CHECKING, Any, Dict, Final, Literal, Optional, Union, cast, final
 
 from pony.utils import localbase, throw
 
@@ -22,11 +23,11 @@ class Local(localbase):
     def __init__(local) -> None:
         local.debug: bool = False
         local.show_values: Optional[bool] = None
-        local.debug_stack: List[Tuple[bool, Optional[bool]]] = []
+        local.debug_stack: list[tuple[bool, Optional[bool]]] = []
         local.db2cache = {}
         local.db_context_counter = 0
         local.db_session: Optional["DBSessionContextManager"] = None
-        local.prefetch_context_stack: Final[List["PrefetchContext"]] = []
+        local.prefetch_context_stack: Final[list["PrefetchContext"]] = []
         local.current_user: Any = None
         local.perms_context: Any = None
         local.user_groups_cache = {}
@@ -74,7 +75,7 @@ def __set_local() -> "Local":
     return local
 
 
-def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: Dict["Attribute"]) -> Tuple[type, Any, dict]:  # type: ignore [type-arg]
+def _parse_row_(entity: "EntityMeta", row: tuple, attr_offsets: Dict["Attribute"]) -> tuple[type, Any, dict]:  # type: ignore [type-arg]
     discr_attr: Optional["Attribute"] = entity._discriminator_attr_
     if not discr_attr:
         discr_value = None
@@ -298,8 +299,8 @@ def _db_set_(obj: "Entity", avdict: Dict["Attribute", Any], unpickling: bool = F
 def db_update_reverse(
     attr: "Attribute",
     obj: "Entity",
-    old_dbval: Optional[Union["Entity", NotLoadedValueType]],
-    new_dbval: Optional["Entity"],
+    old_dbval: "Entity" | NotLoadedValueType | None,
+    new_dbval: "Entity" | None,
 ) -> None:
     reverse = attr.reverse
     if reverse is None: throw(NotImplementedError)
@@ -340,3 +341,61 @@ class QueryResultIterator:
         return self.next()  # type: ignore [no-untyped-call]
     def __length_hint__(self) -> int:
         return len(self._query_result) - self._position
+
+
+adapted_sql_cache: Final[dict[tuple[str, str], Any]] = {}
+
+def adapt_sql(sql: str, paramstyle: str) -> Any:
+    result: tuple[str, types.CodeType] = adapted_sql_cache.get((sql, paramstyle))
+    if result is not None: return result
+    pos: int = 0
+    preresult: list[str] = []
+    args: list[str] = []
+    kwargs: dict[str, str] = {}
+    original_sql = sql
+    if paramstyle in ('format', 'pyformat'): sql = sql.replace('%', '%%')
+    while True:
+        try: i = sql.index('$', pos)
+        except ValueError:
+            preresult.append(sql[pos:])
+            break
+        preresult.append(sql[pos:i])
+        if sql[i+1] == '$':
+            preresult.append('$')
+            pos = i+2
+        else:
+            try: expr, _ = parse_expr(sql, i+1)
+            except ValueError:
+                raise # TODO
+            pos = i+1 + len(expr)
+            if expr.endswith(';'): expr = expr[:-1]
+            compile(expr, '<?>', 'eval')  # expr correction check
+            if paramstyle == 'qmark':
+                args.append(expr)
+                preresult.append('?')
+            elif paramstyle == 'format':
+                args.append(expr)
+                preresult.append('%s')
+            elif paramstyle == 'numeric':
+                args.append(expr)
+                preresult.append(':%d' % len(args))
+            elif paramstyle == 'named':
+                key = 'p%d' % (len(kwargs) + 1)
+                kwargs[key] = expr
+                preresult.append(':' + key)
+            elif paramstyle == 'pyformat':
+                key = 'p%d' % (len(kwargs) + 1)
+                kwargs[key] = expr
+                preresult.append('%%(%s)s' % key)
+            else: throw(NotImplementedError)
+    if args or kwargs:
+        adapted_sql = ''.join(preresult)
+        if args: source = '(%s,)' % ', '.join(args)
+        else: source = '{%s}' % ','.join('%r:%s' % item for item in kwargs.items())
+        code = compile(source, '<?>', 'eval')
+    else:
+        adapted_sql = original_sql.replace('$$', '$')
+        code = compile('None', '<?>', 'eval')
+    result = adapted_sql, code
+    adapted_sql_cache[(sql, paramstyle)] = result
+    return result
