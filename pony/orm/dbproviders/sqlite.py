@@ -19,8 +19,8 @@ from pony.orm.sqlbuilding import SQLBuilder, Value, join, make_unary_func
 from pony.orm.dbapiprovider import DBAPIProvider, Pool, wrap_dbapi_exceptions
 from pony.orm.dbproviders._sqlite import SQLiteJsonConverter, SQLiteDateConverter, SQLiteDatetimeConverter, SQLiteTimeConverter, SQLiteTimedeltaConverter, SQLiteValue, \
     dumps, json_path_re, path_cache, py_array_contains, py_array_index, py_array_length, py_array_slice, py_array_subset, py_json_array_length, \
-    py_json_contains, py_json_extract, py_json_nonzero, py_json_query, py_json_unwrap, py_json_value, py_make_array, py_string_slice, wrap_array_func, \
-    _extract, _parse_path, _traverse
+    py_json_contains, py_json_extract, py_json_nonzero, py_json_query, py_json_unwrap, py_json_value, py_lower, py_make_array, py_string_slice, py_upper, wrap_array_func, \
+    _extract, _parse_path, _text_factory, _traverse
 from pony.utils import datetime2timestamp, timestamp2datetime, absolutize_path, localbase, throw, reraise, \
     cut_traceback_depth
 
@@ -453,26 +453,6 @@ class SQLiteProvider(DBAPIProvider):
 
 provider_cls = SQLiteProvider
 
-def _text_factory(s):
-    return s.decode('utf8', 'replace')
-
-def make_string_function(name, base_func):
-    def func(value):
-        if value is None:
-            return None
-        t = type(value)
-        if t is not str:
-            if t is buffer:
-                value = hexlify(value).decode('ascii')
-            else:
-                value = str(value)
-        result = base_func(value)
-        return result
-    func.__name__ = name
-    return func
-
-py_upper = make_string_function('py_upper', str.upper)
-py_lower = make_string_function('py_lower', str.lower)
 
 class SQLitePool(Pool):
     def __init__(pool, is_shared_memory_db, filename, create_db, **kwargs): # called separately in each thread
