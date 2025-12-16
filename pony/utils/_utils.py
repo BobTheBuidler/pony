@@ -270,16 +270,16 @@ def deref_proxy(value: _T) -> _T:
     tname = t.__name__
     if tname == 'LocalProxy' and '_get_current_object' in t.__dict__:
         # Flask local proxy
-        value = value._get_current_object()
+        value = value._get_current_object()  # type: ignore [attr-defined]
     elif tname == 'EntityProxy':
         # Pony proxy
-        value = value._get_object()
+        value = value._get_object()  # type: ignore [attr-defined]
 
-    return value
+    return value  # type: ignore [no-any-return]
 
 DeduplicationCache = dict[Type[_T], _T]
 
-def deduplicate(value: _T, deduplication_cache: DeduplicationCache) -> _T:
+def deduplicate(value: _T, deduplication_cache: DeduplicationCache[Any]) -> _T:
     t = type(value)
     try:
         return deduplication_cache[t].setdefault(value, value)
