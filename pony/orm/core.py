@@ -3820,8 +3820,8 @@ class EntityMeta(type):
 
         entity._access_rules_ = defaultdict(set)
     def _initialize_bits_(entity) -> None:
-        entity._bits_: dict[Entity, int] = {}
-        entity._bits_except_volatile_: dict[Entity, int] = {}
+        entity._bits_: dict[EntityMeta, int] = {}
+        entity._bits_except_volatile_: dict[EntityMeta, int] = {}
         offset_counter = itertools.count()
         all_bits = all_bits_except_volatile = 0
         for attr in entity._attrs_:
