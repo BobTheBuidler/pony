@@ -10,7 +10,7 @@ from typing import Any, Final, List, Literal, Sequence, Tuple, Union
 from pony import options
 from pony.utils import datetime2timestamp, throw, is_ident
 from pony.converting import timedelta2str
-from pony.orm._sqlbuilding import Value, adapter_qmark, adapter_named, adapter_numeric
+from pony.orm._sqlbuilding import SQLValue, Value, adapter_qmark, adapter_named, adapter_numeric
 from pony.orm.ormtypes import RawSQL, Json
 
 class AstError(Exception): pass
@@ -23,7 +23,7 @@ class Param(object):
         param.paramkey = paramkey
         param.converter = converter
         param.optimistic: Final = optimistic
-    def eval(param, values: dict[str, Value]) -> str | int:
+    def eval(param, values: dict[str, Value]) -> SQLValue:
         varkey, i, j = param.paramkey
         value = values[varkey]
         if i is not None:
