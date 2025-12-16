@@ -159,11 +159,11 @@ class SQLBuilder(object):
         builder.layout = layout
         builder.sql = u''.join(map(str, builder.result)).rstrip('\n')
         if paramstyle in ('qmark', 'format'):
-            adapter = adapter_qmark
+            adapter = adapter_qmark(params)
         elif paramstyle == 'numeric':
-            adapter = adapter_numeric
+            adapter = adapter_numeric(params)
         elif paramstyle in ('named', 'pyformat'):
-            adapter = adapter_named
+            adapter = adapter_named(params)
         else: throw(NotImplementedError, paramstyle)
         builder.params = params
         builder.adapter = adapter
