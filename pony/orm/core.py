@@ -4943,7 +4943,7 @@ class Entity(object, metaclass=EntityMeta):
                 throw(TypeError, 'Cannot change value of primary key attribute %s' % attr.name)
         return avdict, collection_avdict
     @classmethod
-    def _attrs_with_bit_(entity: Type["Entity"], attrs: list["Attribute"], mask: int = -1) -> Iterator["Attribute"]:
+    def _attrs_with_bit_(entity, attrs: list["Attribute"], mask: int = -1) -> Iterator["Attribute"]:
         return _attrs_with_bit_(entity, attrs, mask)
     def _construct_optimistic_criteria_(obj):
         optimistic_columns = []
