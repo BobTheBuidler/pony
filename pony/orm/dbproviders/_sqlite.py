@@ -14,7 +14,8 @@ from typing_extensions import Concatenate, ParamSpec
 from pony.orm import dbapiprovider
 from pony.orm._dbapiprovider import Pool
 from pony.orm._sqlbuilding import Value
-from pony.utils import datetime2timestamp, throw, timestamp2datetime
+from pony.utils import throw
+from pony.utils._utils import datetime2timestamp, timestamp2datetime
 
 
 _T = TypeVar("_T")
@@ -298,9 +299,9 @@ class SQLitePool(Pool):
         if pool.is_shared_memory_db or pool.filename == ':memory:':
             pass
         else:
-            Pool.disconnect(pool)
+            super().disconnect()
     def drop(pool, con: Any) -> None:
         if pool.is_shared_memory_db or pool.filename == ':memory:':
             con.rollback()
         else:
-            Pool.drop(pool, con)
+            super().drop(con)
