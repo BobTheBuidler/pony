@@ -16,13 +16,13 @@ ValueType = bool | str | datetime | date | timedelta | int | float | Decimal | b
 
 Params = tuple["Param", ...]
 
-InputValues = dict[str, "Value"]
+InputValues = dict[str, "Value"] | tuple[Any, ...]
 
 SQLValue = str | int | bytes
 SQLTuple = tuple[SQLValue, ...]
 
-def adapter_qmark(params: Params) -> Callable[[tuple[Any, ...]], SQLTuple]:
-    def adapter(values: tuple[Any, ...]) -> SQLTuple:
+def adapter_qmark(params: Params) -> Callable[[InputValues], SQLTuple]:
+    def adapter(values: InputValues) -> SQLTuple:
         return tuple(param.eval(values) for param in params)
     return adapter
 
