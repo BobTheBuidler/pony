@@ -20,7 +20,7 @@ from typing_extensions import Self
 
 import pony
 from pony import options
-from pony.orm._core import DEFAULT, NOT_LOADED, QueryResultIterator, adapt_sql, db_update_reverse, new_instance_id_counter, _attrs_with_bit_, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
+from pony.orm._core import DEFAULT, NOT_LOADED, QueryResultIterator, adapt_sql, db_update_reverse, new_instance_id_counter, _attrs_with_bit_, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _get_raw_pkval_, _parse_row_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
@@ -4597,17 +4597,8 @@ class Entity(object, metaclass=EntityMeta):
         pkval = obj._get_raw_pkval_()
         if len(pkval) == 1: return pkval[0]
         return pkval
-    def _get_raw_pkval_(obj):
-        pkval = obj._pkval_
-        if not obj._pk_is_composite_:
-            if not obj._pk_attrs_[0].reverse: return (pkval,)
-            else: return pkval._get_raw_pkval_()
-        raw_pkval = []
-        append, extend = raw_pkval.append, raw_pkval.extend
-        for attr, val in zip(obj._pk_attrs_, pkval):
-            if not attr.reverse: append(val)
-            else: extend(val._get_raw_pkval_())
-        return tuple(raw_pkval)
+    def _get_raw_pkval_(obj) -> tuple[Any, ...]:
+        return _get_raw_pkval_(obj)
     @cut_traceback
     def __lt__(entity, other):
         return entity._cmp_(other) < 0
