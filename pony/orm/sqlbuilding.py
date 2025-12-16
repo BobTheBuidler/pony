@@ -19,11 +19,11 @@ class Param(object):
     __slots__ = 'style', 'id', 'paramkey', 'converter', 'optimistic'
     def __init__(param, paramstyle: str, paramkey, converter=None, optimistic=False):
         param.style = paramstyle
-        param.id = None
+        param.id: int | None = None
         param.paramkey = paramkey
         param.converter = converter
         param.optimistic = optimistic
-    def eval(param, values):
+    def eval(param, values: list[Value]) -> str:
         varkey, i, j = param.paramkey
         value = values[varkey]
         if i is not None:
