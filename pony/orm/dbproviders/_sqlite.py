@@ -1,9 +1,11 @@
 import binascii
 import re
+import os
 import datetime, json, time
 from functools import wraps
 from typing import Any, Callable, Final, TypeVar, cast, overload
 
+import sqlite
 from typing_extensions import Concatenate, ParamSpec
 
 from pony.orm import dbapiprovider
@@ -235,3 +237,60 @@ def py_lower(value: Any) -> str | None:
     else:
         string = str(value)
     return string.lower()
+
+
+@final
+class SQLitePool(Pool):
+    def __init__(pool, is_shared_memory_db: bool, filename: str, create_db: bool, **kwargs: Any): # called separately in each thread
+        pool.is_shared_memory_db: Final = is_shared_memory_db
+        pool.filename: Final = filename
+        pool.create_db: Final = create_db
+        pool.kwargs: Final = kwargs
+        pool.con: Any = None
+    def _connect(pool) -> None:
+        filename = pool.filename
+        if pool.is_shared_memory_db or pool.filename == ':memory:':
+            pass
+        elif not pool.create_db and not os.path.exists(filename):
+            throw(IOError, "Database file is not found: %r" % filename)
+
+        pool.con = con = sqlite.connect(filename, isolation_level=None, **pool.kwargs)
+        con.text_factory = _text_factory
+
+        def create_function(name: str, num_params: int, func: Callable[..., Any]) -> None:
+            func = keep_exception(func)
+            con.create_function(name, num_params, func)
+
+        create_function('power', 2, pow)
+        create_function('rand', 0, random)
+        create_function('py_upper', 1, py_upper)
+        create_function('py_lower', 1, py_lower)
+        create_function('py_json_unwrap', 1, py_json_unwrap)
+        create_function('py_json_extract', -1, py_json_extract)
+        create_function('py_json_contains', 3, py_json_contains)
+        create_function('py_json_nonzero', 2, py_json_nonzero)
+        create_function('py_json_array_length', -1, py_json_array_length)
+
+        create_function('py_array_index', 2, py_array_index)
+        create_function('py_array_contains', 2, py_array_contains)
+        create_function('py_array_subset', 2, py_array_subset)
+        create_function('py_array_length', 1, py_array_length)
+        create_function('py_array_slice', 3, py_array_slice)
+        create_function('py_make_array', -1, py_make_array)
+
+        create_function('py_string_slice', 3, py_string_slice)
+
+        if sqlite.sqlite_version_info >= (3, 6, 19):
+            con.execute('PRAGMA foreign_keys = true')
+
+        con.execute('PRAGMA case_sensitive_like = true')
+    def disconnect(pool) -> None:
+        if pool.is_shared_memory_db or pool.filename == ':memory:':
+            pass
+        else:
+            Pool.disconnect(pool)
+    def drop(pool, con: Any) -> None:
+        if pool.is_shared_memory_db or pool.filename == ':memory:':
+            con.rollback()
+        else:
+            Pool.drop(pool, con)
