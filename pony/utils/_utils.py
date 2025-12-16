@@ -6,7 +6,7 @@ import types
 from collections import defaultdict
 from datetime import datetime
 from time import strptime
-from typing import Any, DefaultDict, Final, Iterable, TypeVar, cast, overload
+from typing import Any, DefaultDict, Final, Iterable, Type, TypeVar, cast, overload
 from xml.etree import cElementTree
 
 _T = TypeVar("_T")
@@ -277,7 +277,9 @@ def deref_proxy(value: _T) -> _T:
 
     return value
 
-def deduplicate(value: _T, deduplication_cache: dict[Type[Any], Any]) -> _T:
+DeduplicationCache = dict[Type[_T], _T]
+
+def deduplicate(value: _T, deduplication_cache: DeduplicationCache) -> _T:
     t = type(value)
     try:
         return deduplication_cache[t].setdefault(value, value)
