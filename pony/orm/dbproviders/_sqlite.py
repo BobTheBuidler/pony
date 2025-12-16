@@ -80,7 +80,6 @@ class SQLiteJsonConverter(dbapiprovider.JsonConverter):
     json_kwargs: Final = {'separators': (',', ':'), 'sort_keys': True, 'ensure_ascii': False}  # type: ignore [misc]
 
 
-@final
 def dumps(items: Any) -> str:
     return _dumps(items, **SQLiteJsonConverter.json_kwargs)  # type: ignore [arg-type]
 
