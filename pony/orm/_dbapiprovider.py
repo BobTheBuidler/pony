@@ -9,6 +9,8 @@ from pony.utils import localbase
 @final
 @mypyc_attr(allow_interpreted_subclasses=True)
 class Pool(localbase):
+    con: Any  # TODO: type this properly
+    pid: int | None
     forked_connections: Final[list[tuple[Any, int]]] = []
     def __init__(
         pool,
@@ -19,7 +21,7 @@ class Pool(localbase):
         pool.dbapi_module: Final = dbapi_module
         pool.args: Final = args
         pool.kwargs: Final = kwargs
-        pool.con: Any = pool.pid = None
+        pool.con = pool.pid = None
     def connect(pool):
         pid = os.getpid()
         if pool.con is not None and pool.pid != pid:
