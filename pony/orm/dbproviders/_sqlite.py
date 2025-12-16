@@ -247,7 +247,7 @@ def py_lower(value: Any) -> str | None:
         string = str(value)
     return string.lower()
 
-
+"""
 @final
 class SQLitePool(Pool):
     def __init__(pool, is_shared_memory_db: bool, filename: str, create_db: bool, **kwargs: Any): # called separately in each thread
@@ -305,3 +305,4 @@ class SQLitePool(Pool):
             con.rollback()
         else:
             super().drop(con)
+"""
