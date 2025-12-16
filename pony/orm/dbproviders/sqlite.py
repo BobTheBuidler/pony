@@ -473,8 +473,6 @@ class SQLitePool(Pool):
         pool.con = con = sqlite.connect(filename, isolation_level=None, **pool.kwargs)
         con.text_factory = _text_factory
 
-        from pony.orm.dbproviders.sqlite import keep_exception
-
         def create_function(name: str, num_params: int, func: Callable[..., Any]) -> None:
             func = keep_exception(func)  # type: ignore [no-untyped-call]
             con.create_function(name, num_params, func)
