@@ -28,6 +28,7 @@ from pony.orm import core, dbschema, dbapiprovider, sqltranslation, ormtypes
 from pony.orm._sqlbuilding import Value
 from pony.orm.core import log_orm
 from pony.orm.dbapiprovider import DBAPIProvider, Pool, wrap_dbapi_exceptions
+from pony.orm.dbproviders._postgres import PGPool
 from pony.orm.sqltranslation import SQLTranslator
 from pony.orm.sqlbuilding import SQLBuilder, join
 from pony.converting import timedelta2str
@@ -183,24 +184,6 @@ class PGArrayConverter(dbapiprovider.ArrayConverter):
         str: ('text', dbapiprovider.StrConverter),
         float: ('double precision', PGRealConverter)
     }
-
-@final
-class PGPool(Pool):
-    def _connect(pool) -> None:
-        pool.con = pool.dbapi_module.connect(*pool.args, **pool.kwargs)
-        if 'client_encoding' not in pool.kwargs:
-            pool.con.set_client_encoding('UTF8')
-    def release(pool, con) -> None:
-        assert con is pool.con
-        try:
-            con.rollback()
-            con.autocommit = True
-            cursor = con.cursor()
-            cursor.execute('DISCARD ALL')
-            con.autocommit = False
-        except:
-            pool.drop(con)
-            raise
 
 
 ADMIN_SHUTDOWN: Final = '57P01'
