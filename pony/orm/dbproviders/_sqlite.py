@@ -228,10 +228,9 @@ def _text_factory(s: bytes) -> str:
 def py_upper(value: Any) -> str | None:
     if value is None:
         return None
-    t = type(value)
-    if t is str:
+    if type(value) is str:
         string = value
-    elif t is buffer:
+    elif type(value) is buffer:
         string = hexlify(value).decode('ascii')
     else:
         string = str(value)
@@ -240,10 +239,9 @@ def py_upper(value: Any) -> str | None:
 def py_lower(value: Any) -> str | None:
     if value is None:
         return None
-    t = type(value)
-    if t is str:
+    if type(value) is str:
         string = value
-    elif t is buffer:
+    elif type(value) is buffer:
         string = hexlify(value).decode('ascii')
     else:
         string = str(value)
@@ -256,7 +254,7 @@ class SQLitePool(Pool):
         pool.is_shared_memory_db: Final = is_shared_memory_db
         pool.filename: Final = filename
         pool.create_db: Final = create_db
-        pool.kwargs: Final = kwargs
+        pool.kwargs: Final = kwargs  # type: ignore [misc]
         pool.con: Any = None
     def _connect(pool) -> None:
         filename = pool.filename
