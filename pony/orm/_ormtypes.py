@@ -4,7 +4,8 @@ from typing import Any, Dict, Final, List, Optional, Tuple, Union, final
 
 from typing_extensions import Self
 
-from pony.utils import throw, parse_expr, deref_proxy
+from pony.utils import throw, parse_expr
+from pony.utils._utils import deref_proxy
 
 
 NoneType: Final = type(None)
