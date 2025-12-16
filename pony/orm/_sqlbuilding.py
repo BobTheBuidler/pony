@@ -1,7 +1,7 @@
 from binascii import hexlify
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Final, Union
+from typing import TYPE_CHECKING, Any, Callable, Final, Union
 
 from mypy_extensions import mypyc_attr
 
