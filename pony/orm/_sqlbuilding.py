@@ -56,7 +56,11 @@ class Value:
             return 'DATE ' + self.quote_str(str(value))
         if isinstance(value, timedelta):
             return "INTERVAL '%s' HOUR TO SECOND" % timedelta2str(value)
-        if isinstance(value, (int, float, Decimal)):
+        if isinstance(value, int):
+            return str(value)
+        if isinstance(value, float):
+            return str(value)
+        if isinstance(value, Decimal):
             return str(value)
         if isinstance(value, bytes):
             return f"X'{hexlify(value).decode('ascii')}'"
