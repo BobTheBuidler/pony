@@ -19,7 +19,7 @@ class Param(object):
     __slots__ = 'style', 'id', 'paramkey', 'converter', 'optimistic'
     def __init__(param, paramstyle: str, paramkey, converter=None, optimistic=False):
         param.style = paramstyle
-        param.id: int | None = None
+        param.id: int = None
         param.paramkey = paramkey
         param.converter = converter
         param.optimistic = optimistic
