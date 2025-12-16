@@ -1,8 +1,13 @@
 from typing import Any, Final, final
+
+from mypy_extensions import mypyc_attr
+
+import pony
 from pony.utils import localbase
 
 
 @final
+@mypyc_attr(allow_interpreted_subclasses=True)
 class Pool(localbase):
     forked_connections: Final[list[tuple[Any, int]]] = []
     def __init__(
