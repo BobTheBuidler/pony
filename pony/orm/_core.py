@@ -233,7 +233,7 @@ def _attrs_with_bit_(entity: Type["Entity"], attrs: list["Attribute"], mask: int
 
 def _get_raw_pkval_(obj: "Entity") -> tuple["Entity", ...]:
     pkval: "Entity" | tuple["Entity", ...] = obj._pkval_
-    pkattrs: tuple["Attribute", ...] = obj._pk_attrs_
+    pkattrs: tuple["Attribute", ...] = obj._pk_attrs_  # type: ignore [attr-defined]
     if not obj._pk_is_composite_:  # type: ignore [attr-defined]
         if not pkattrs[0].reverse: return (cast("Entity", pkval),)
         else: return _get_raw_pkval_(cast("Entity", pkval))
