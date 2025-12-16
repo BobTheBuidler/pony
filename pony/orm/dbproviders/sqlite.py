@@ -17,7 +17,7 @@ from pony.orm.ormtypes import Json, TrackedArray
 from pony.orm.sqltranslation import SQLTranslator, StringExprMonad
 from pony.orm.sqlbuilding import SQLBuilder, Value, join, make_unary_func
 from pony.orm.dbapiprovider import DBAPIProvider, Pool, wrap_dbapi_exceptions
-from pony.orm.dbproviders._sqlite import SQLiteJsonConverter, SQLiteDateConverter, SQLiteDatetimeConverter, SQLiteTimeConverter, SQLiteTimedeltaConverter, SQLiteValue, \
+from pony.orm.dbproviders._sqlite import SQLiteJsonConverter, SQLiteDateConverter, SQLiteDatetimeConverter, SQLitePool, SQLiteTimeConverter, SQLiteTimedeltaConverter, SQLiteValue, \
     dumps, json_path_re, path_cache, py_array_contains, py_array_index, py_array_length, py_array_slice, py_array_subset, py_json_array_length, \
     py_json_contains, py_json_extract, py_json_nonzero, py_json_query, py_json_unwrap, py_json_value, py_lower, py_make_array, py_string_slice, py_upper, wrap_array_func, \
     _extract, _parse_path, _text_factory, _traverse
@@ -452,59 +452,3 @@ class SQLiteProvider(DBAPIProvider):
             return False
 
 provider_cls = SQLiteProvider
-
-
-class SQLitePool(Pool):
-    def __init__(pool, is_shared_memory_db, filename, create_db, **kwargs): # called separately in each thread
-        pool.is_shared_memory_db = is_shared_memory_db
-        pool.filename = filename
-        pool.create_db = create_db
-        pool.kwargs = kwargs
-        pool.con = None
-    def _connect(pool):
-        filename = pool.filename
-        if pool.is_shared_memory_db or pool.filename == ':memory:':
-            pass
-        elif not pool.create_db and not os.path.exists(filename):
-            throw(IOError, "Database file is not found: %r" % filename)
-
-        pool.con = con = sqlite.connect(filename, isolation_level=None, **pool.kwargs)
-        con.text_factory = _text_factory
-
-        def create_function(name, num_params, func):
-            func = keep_exception(func)
-            con.create_function(name, num_params, func)
-
-        create_function('power', 2, pow)
-        create_function('rand', 0, random)
-        create_function('py_upper', 1, py_upper)
-        create_function('py_lower', 1, py_lower)
-        create_function('py_json_unwrap', 1, py_json_unwrap)
-        create_function('py_json_extract', -1, py_json_extract)
-        create_function('py_json_contains', 3, py_json_contains)
-        create_function('py_json_nonzero', 2, py_json_nonzero)
-        create_function('py_json_array_length', -1, py_json_array_length)
-
-        create_function('py_array_index', 2, py_array_index)
-        create_function('py_array_contains', 2, py_array_contains)
-        create_function('py_array_subset', 2, py_array_subset)
-        create_function('py_array_length', 1, py_array_length)
-        create_function('py_array_slice', 3, py_array_slice)
-        create_function('py_make_array', -1, py_make_array)
-
-        create_function('py_string_slice', 3, py_string_slice)
-
-        if sqlite.sqlite_version_info >= (3, 6, 19):
-            con.execute('PRAGMA foreign_keys = true')
-
-        con.execute('PRAGMA case_sensitive_like = true')
-    def disconnect(pool):
-        if pool.is_shared_memory_db or pool.filename == ':memory:':
-            pass
-        else:
-            Pool.disconnect(pool)
-    def drop(pool, con):
-        if pool.is_shared_memory_db or pool.filename == ':memory:':
-            con.rollback()
-        else:
-            Pool.drop(pool, con)
