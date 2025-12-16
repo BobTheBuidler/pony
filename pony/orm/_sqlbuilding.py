@@ -20,12 +20,12 @@ def adapter_qmark(params: tuple["Param", ...]) -> Callable[[list["Value"]], tupl
         return tuple(param.eval(values) for param in params)
     return adapter
 
-def adapter_numeric(params: tuple["Param", ...]) -> Callable[[list["Value"]], tuple[str, ...]]
+def adapter_numeric(params: tuple["Param", ...]) -> Callable[[list["Value"]], tuple[str, ...]]:
     def adapter(values: list["Value"]) -> tuple[str, ...]:
         return tuple(param.eval(values) for param in params)
     return adapter
 
-def adapter_named(params: tuple["Param", ...]) -> Callable[[list["Value"]], dict[str, int]]
+def adapter_named(params: tuple["Param", ...]) -> Callable[[list["Value"]], dict[str, int]]:
     def adapter(values: list["Value"]) -> dict[str, int]:
         return {'p%d' % param.id: param.eval(values) for param in params}
     return adapter
