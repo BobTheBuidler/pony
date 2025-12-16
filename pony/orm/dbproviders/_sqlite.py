@@ -1,3 +1,5 @@
+from pony.py23compat import buffer
+
 import binascii
 import re
 import os
