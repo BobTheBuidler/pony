@@ -96,7 +96,7 @@ class RawSQLType:
 
 # TODO: add overloads
 def normalize(value: Any) -> Tuple[Any, Any]:
-    value = deref_proxy(value)  # type: ignore [no-untyped-call]
+    value = deref_proxy(value)
     t = type(value)
     if t is tuple:
         item_types, item_values = [], []
@@ -106,11 +106,11 @@ def normalize(value: Any) -> Tuple[Any, Any]:
             item_types.append(item_type)
         return tuple(item_types), tuple(item_values)
 
-    if t.__name__ == 'EntityMeta':
+    if (tname := t.__name__) == 'EntityMeta':
         from pony.orm.ormtypes import SetType
         return SetType(value), value  # type: ignore [no-untyped-call]
 
-    if t.__name__ == 'EntityIter':
+    if tname == 'EntityIter':
         from pony.orm.ormtypes import SetType
         entity = value.entity
         return SetType(entity), entity  # type: ignore [no-untyped-call]
