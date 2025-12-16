@@ -227,7 +227,7 @@ def _get_by_raw_pkval_(
     return obj
 
 
-def _attrs_with_bit_(entity: Type["Entity"], attrs: list["Attribute"], mask: int = -1) -> Iterator["Entity"]:
+def _attrs_with_bit_(entity: Type["Entity"], attrs: list["Attribute"], mask: int = -1) -> Iterator["Attribute"]:
     bits = entity._bits_
     for attr in attrs:
         if bits.get(attr) & mask: yield attr
