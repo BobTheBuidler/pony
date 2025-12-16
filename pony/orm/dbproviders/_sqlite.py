@@ -4,6 +4,7 @@ import binascii
 import re
 import os
 import datetime, json, time
+import sqlite3 as sqlite
 from functools import wraps
 from random import random
 from typing import Any, Callable, Final, TypeVar, cast, final, overload
