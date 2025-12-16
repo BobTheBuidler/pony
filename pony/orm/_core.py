@@ -235,11 +235,11 @@ def _get_raw_pkval_(obj: "Entity") -> tuple[Any, ...]:
     pkval = obj._pkval_
     if not obj._pk_is_composite_:
         if not obj._pk_attrs_[0].reverse: return (pkval,)
-        else: return pkval._get_raw_pkval_()
+        else: return _get_raw_pkval_(pkval)
     raw_pkval: list[Any] = []
     for attr, val in zip(obj._pk_attrs_, pkval):
         if not attr.reverse: raw_pkval.append(val)
-        else: raw_pkval.extend(val._get_raw_pkval_())
+        else: raw_pkval.extend(_get_raw_pkval_(val))
     return tuple(raw_pkval)
   
 
