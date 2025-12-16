@@ -22,7 +22,7 @@ SQLValue = str | int | bytes
 SQLTuple = tuple[SQLValue, ...]
 
 def adapter_qmark(params: Params) -> Callable[[InputValues], SQLTuple]:
-    def adapter(values: InputValues) -> SQLTuple:
+    def adapter(values: tuple[Any, ...]) -> SQLTuple:
         return tuple(param.eval(values) for param in params)
     return adapter
 
