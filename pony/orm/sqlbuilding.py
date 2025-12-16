@@ -5,7 +5,7 @@ from operator import attrgetter
 from decimal import Decimal
 from datetime import date, datetime, timedelta
 from binascii import hexlify
-from typing import Any, List, Literal, Sequence, Tuple, Union
+from typing import Any, Final, List, Literal, Sequence, Tuple, Union
 
 from pony import options
 from pony.utils import datetime2timestamp, throw, is_ident
@@ -17,13 +17,13 @@ class AstError(Exception): pass
 
 class Param(object):
     __slots__ = 'style', 'id', 'paramkey', 'converter', 'optimistic'
-    def __init__(param, paramstyle: str, paramkey, converter=None, optimistic=False):
+    def __init__(param, paramstyle: str, paramkey, converter=None, optimistic: bool = False):
         param.style = paramstyle
         param.id: int = None
         param.paramkey = paramkey
         param.converter = converter
-        param.optimistic = optimistic
-    def eval(param, values: list[Value]) -> str:
+        param.optimistic: Final = optimistic
+    def eval(param, values: dict[str, Value]) -> str:
         varkey, i, j = param.paramkey
         value = values[varkey]
         if i is not None:
