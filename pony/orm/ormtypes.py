@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Final, Literal, Tuple
 
 from typing_extensions import Self
 
-from pony.orm._ormtypes import RawSQL, RawSQLType, normalize, normalize_type, parse_raw_sql, raw_sql
+from pony.orm._ormtypes import FuncType, MethodType, RawSQL, RawSQLType, SetType, normalize, normalize_type, parse_raw_sql, raw_sql
 from pony.utils import throw
 
 if TYPE_CHECKING:
@@ -23,48 +23,6 @@ class LongStr(str):
     lazy = True
 
 LongUnicode = LongStr
-
-class SetType(object):
-    __slots__ = 'item_type'
-    def __deepcopy__(self, memo) -> Self:
-        return self  # SetType instances are "immutable"
-    def __init__(self, item_type):
-        self.item_type = item_type
-    def __eq__(self, other: Any) -> bool:
-        return type(other) is SetType and self.item_type == other.item_type
-    def __ne__(self, other: Any) -> bool:
-        return type(other) is not SetType or self.item_type != other.item_type
-    def __hash__(self) -> int:
-        return hash(self.item_type) + 1
-
-class FuncType(object):
-    __slots__ = 'func'
-    def __deepcopy__(self, memo) -> Self:
-        return self  # FuncType instances are "immutable"
-    def __init__(self, func):
-        self.func = func
-    def __eq__(self, other: Any) -> bool:
-        return type(other) is FuncType and self.func == other.func
-    def __ne__(self, other: Any) -> bool:
-        return type(other) is not FuncType or self.func != other.func
-    def __hash__(self) -> int:
-        return hash(self.func) + 1
-    def __repr__(self):
-        return 'FuncType(%s at %d)' % (self.func.__name__, id(self.func))
-
-class MethodType(object):
-    __slots__ = 'obj', 'func'
-    def __deepcopy__(self, memo) -> Self:
-        return self  # MethodType instances are "immutable"
-    def __init__(self, method):
-        self.obj = method.__self__
-        self.func = method.__func__
-    def __eq__(self, other: Any) -> bool:
-        return type(other) is MethodType and self.obj == other.obj and self.func == other.func
-    def __ne__(self, other: Any) -> bool:
-        return type(other) is not MethodType or self.obj != other.obj or self.func != other.func
-    def __hash__(self) -> int:
-        return hash(self.obj) ^ hash(self.func)
 
 class QueryType(object):
     def __init__(self, query, limit=None, offset=None):
