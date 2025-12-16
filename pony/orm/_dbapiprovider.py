@@ -1,4 +1,5 @@
 import types
+from os import getpid
 from typing import Any, Final, final
 
 from mypy_extensions import mypyc_attr
@@ -24,7 +25,7 @@ class Pool(localbase):
         pool.kwargs: Final = kwargs
         pool.con = pool.pid = None
     def connect(pool) -> tuple[Any, bool]:
-        pid = os.getpid()
+        pid = getpid()
         if pool.con is not None and pool.pid != pid:
             pool.forked_connections.append((pool.con, pool.pid))
             pool.con = pool.pid = None
