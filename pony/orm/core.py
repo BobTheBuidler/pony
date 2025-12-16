@@ -20,7 +20,7 @@ from typing_extensions import Self
 
 import pony
 from pony import options
-from pony.orm._core import DEFAULT, NOT_LOADED, QueryResultIterator, adapt_sql, db_update_reverse, new_instance_id_counter, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
+from pony.orm._core import DEFAULT, NOT_LOADED, QueryResultIterator, adapt_sql, db_update_reverse, new_instance_id_counter, _attrs_with_bit_, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _parse_row_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
@@ -4952,10 +4952,8 @@ class Entity(object, metaclass=EntityMeta):
                 throw(TypeError, 'Cannot change value of primary key attribute %s' % attr.name)
         return avdict, collection_avdict
     @classmethod
-    def _attrs_with_bit_(entity, attrs, mask=-1):
-        get_bit = entity._bits_.get
-        for attr in attrs:
-            if get_bit(attr) & mask: yield attr
+    def _attrs_with_bit_(entity: Type["Entity"], attrs: list["Attribute"], mask: int = -1) -> Iterator[Entity]:
+        return _attrs_with_bit_(entity, attrs, mask)
     def _construct_optimistic_criteria_(obj):
         optimistic_columns = []
         optimistic_converters = []
