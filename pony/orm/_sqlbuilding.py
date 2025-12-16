@@ -16,7 +16,7 @@ ValueType = bool | str | datetime | date | timedelta | int | float | Decimal | b
 
 Params = tuple["Param", ...]
 
-InputValues = dict[str, "Value"] | tuple[Any, ...]
+InputValues = dict[str, "Value"] | tuple[Any, ...] | list[Any]
 
 SQLValue = str | int | bytes
 SQLTuple = tuple[SQLValue, ...]
