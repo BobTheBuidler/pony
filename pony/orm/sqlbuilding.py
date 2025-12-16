@@ -23,7 +23,7 @@ class Param(object):
         param.paramkey = paramkey
         param.converter = converter
         param.optimistic: Final = optimistic
-    def eval(param, values: dict[str, Value]) -> str:
+    def eval(param, values: dict[str, Value]) -> str | int:
         varkey, i, j = param.paramkey
         value = values[varkey]
         if i is not None:
