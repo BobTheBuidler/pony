@@ -253,7 +253,7 @@ class SQLitePool(Pool):
         pool.is_shared_memory_db: Final = is_shared_memory_db
         pool.filename: Final = filename
         pool.create_db: Final = create_db
-        pool.kwargs: Final = kwargs  # type: ignore [misc]
+        pool.kwargs = kwargs
         pool.con: Any = None
     def _connect(pool) -> None:
         filename = pool.filename
