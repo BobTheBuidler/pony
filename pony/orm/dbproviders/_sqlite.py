@@ -204,3 +204,31 @@ def py_string_slice(s: str | None, start: int | str, end: int | str) -> str | No
     if isinstance(end, str):
         end = int(end)
     return s[start:end]
+
+
+def _text_factory(s: bytes) -> str:
+    return s.decode('utf8', 'replace')
+
+def py_upper(value: Any) -> str | None:
+    if value is None:
+        return None
+    t = type(value)
+    if t is str:
+        string = value
+    elif t is buffer:
+        string = hexlify(value).decode('ascii')
+    else:
+        string = str(value)
+    return string.upper()
+
+def py_lower(value: Any) -> str | None:
+    if value is None:
+        return None
+    t = type(value)
+    if t is str:
+        string = value
+    elif t is buffer:
+        string = hexlify(value).decode('ascii')
+    else:
+        string = str(value)
+    return string.lower()
