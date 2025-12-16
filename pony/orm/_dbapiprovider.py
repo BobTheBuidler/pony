@@ -21,7 +21,7 @@ class Pool(localbase):
 ) -> None: # called separately in each thread
         pool.dbapi_module: Final = dbapi_module
         pool.args: Final = args
-        pool.kwargs: Final = kwargs
+        pool.kwargs = kwargs
         pool.con = pool.pid = None
     def connect(pool) -> tuple[Any, bool]:
         pid = getpid()
