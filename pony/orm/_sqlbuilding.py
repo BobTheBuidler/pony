@@ -11,6 +11,16 @@ from pony.utils import datetime2timestamp
 
 ValueType = Union[bool, str, datetime, date, timedelta, int, float, Decimal, bytes]
 
+def adapter_qmark(values: list["Value"]) -> tuple[str, ...]:
+    return tuple(param.eval(values) for param in params)
+
+def adapter_numeric(values: list["Value"]) -> tuple[str, ...]:
+    return tuple(param.eval(values) for param in params)
+
+def adapter_named(values: list["Value"]) -> dict[str, int]:
+    return {'p%d' % param.id: param.eval(values) for param in params}
+
+
 @mypyc_attr(allow_interpreted_subclasses=True)
 class Value(object):
     def __init__(
