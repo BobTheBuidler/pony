@@ -18,7 +18,7 @@ Params = tuple["Param", ...]
 
 InputValues = dict[str, "Value"] | tuple[Any, ...] | list[Any]
 
-SQLValue = str | int | bytes
+SQLValue = str | int | bytes |  date | datetime
 SQLTuple = tuple[SQLValue, ...]
 
 def adapter_qmark(params: Params) -> Callable[[InputValues], SQLTuple]:
