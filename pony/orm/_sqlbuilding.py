@@ -12,8 +12,9 @@ if TYPE_CHECKING:
     from pony.orm.sqlbuilding import Param
 
 
-ValueType = Union[bool, str, datetime, date, timedelta, int, float, Decimal, bytes]
+ValueType = bool | str | datetime | date | timedelta | int | float | Decimal | bytes
 
+SQLValue = str | int
 
 def adapter_qmark(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]], tuple[str, ...]]:
     def adapter(values: dict[str, "Value"]) -> tuple[str, ...]:
@@ -25,8 +26,8 @@ def adapter_numeric(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]
         return tuple(param.eval(values) for param in params)
     return adapter
 
-def adapter_named(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]], dict[str, Any]]:
-    def adapter(values: dict[str, "Value"]) -> dict[str, Any]:
+def adapter_named(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]], dict[str, SQLValue]]:
+    def adapter(values: dict[str, "Value"]) -> dict[str, SQLValue]:
         return {'p%d' % param.id: param.eval(values) for param in params}
     return adapter
 
