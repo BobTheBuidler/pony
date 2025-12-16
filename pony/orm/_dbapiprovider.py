@@ -23,7 +23,7 @@ class Pool(localbase):
         pool.args: Final = args
         pool.kwargs: Final = kwargs
         pool.con = pool.pid = None
-    def connect(pool):
+    def connect(pool) -> tuple[Any, bool]:
         pid = os.getpid()
         if pool.con is not None and pool.pid != pid:
             pool.forked_connections.append((pool.con, pool.pid))
