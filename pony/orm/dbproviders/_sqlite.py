@@ -1,3 +1,4 @@
+import binascii
 import re
 import datetime, json, time
 from functools import wraps
@@ -13,6 +14,8 @@ from pony.utils import datetime2timestamp, timestamp2datetime
 _T = TypeVar("_T")
 _P = ParamSpec("_P")
 _L = TypeVar("_L", bound=list[Any])
+
+hexlify: Final = binascii.hexlify
 
 _dumps: Final = json.dumps
 _loads: Final = json.loads
