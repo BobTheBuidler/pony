@@ -2,7 +2,7 @@
 import itertools
 import types
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, Final, Literal, Optional, Union, cast, final
+from typing import TYPE_CHECKING, Any, Dict, Final, Iterator, Literal, Optional, Type, Union, cast, final
 
 from pony.utils import localbase, throw
 from pony.utils._utils import parse_expr
@@ -225,6 +225,10 @@ def _get_by_raw_pkval_(
     obj = _get_from_identity_map_(entity, final_pkval, 'loaded', for_update) if seed else entity[final_pkval]
     assert obj._status_ != 'cancelled'
     return obj
+
+
+def _attrs_with_bit_(entity: Type["Entity"], attrs: list["Attribute"], mask: int = -1) -> Iterator[Entity]:
+    return _attrs_with_bit_(entity, attrs, mask)
   
 
 def _db_set_(obj: "Entity", avdict: Dict["Attribute", Any], unpickling: bool = False) -> None:
