@@ -3,7 +3,7 @@ import re
 import os
 import datetime, json, time
 from functools import wraps
-from typing import Any, Callable, Final, TypeVar, cast, overload
+from typing import Any, Callable, Final, TypeVar, cast, final, overload
 
 import sqlite
 from typing_extensions import Concatenate, ParamSpec
@@ -24,6 +24,7 @@ _dumps: Final = json.dumps
 _loads: Final = json.loads
 
 
+@final
 class SQLiteValue(Value):
     def __str__(self) -> str:
         value = self.value
@@ -35,6 +36,7 @@ class SQLiteValue(Value):
             return repr(value.total_seconds() / (24 * 60 * 60))
         return super().__str__()
 
+@final
 class SQLiteDateConverter(dbapiprovider.DateConverter):
     def sql2py(converter, val: str) -> datetime.date | str:
         try:
@@ -44,6 +46,7 @@ class SQLiteDateConverter(dbapiprovider.DateConverter):
     def py2sql(converter, val: datetime.date) -> str:
         return val.strftime('%Y-%m-%d')
 
+@final
 class SQLiteTimeConverter(dbapiprovider.TimeConverter):
     def sql2py(converter, val: str) -> datetime.time | str:
         try:
@@ -53,12 +56,14 @@ class SQLiteTimeConverter(dbapiprovider.TimeConverter):
     def py2sql(converter, val: datetime.time) -> str:
         return val.isoformat()
 
+@final
 class SQLiteTimedeltaConverter(dbapiprovider.TimedeltaConverter):
     def sql2py(converter, val: float) -> datetime.timedelta:
         return datetime.timedelta(days=val)
     def py2sql(converter, val: datetime.timedelta) -> float:
         return val.days + (val.seconds + val.microseconds / 1000000.0) / 86400.0
 
+@final
 class SQLiteDatetimeConverter(dbapiprovider.DatetimeConverter):
     def sql2py(converter, val: str) -> datetime.datetime | str:
         try: return timestamp2datetime(val)
@@ -66,10 +71,12 @@ class SQLiteDatetimeConverter(dbapiprovider.DatetimeConverter):
     def py2sql(converter, val: datetime.datetime) -> str:
         return datetime2timestamp(val)
 
+@final
 class SQLiteJsonConverter(dbapiprovider.JsonConverter):
     json_kwargs: Final = {'separators': (',', ':'), 'sort_keys': True, 'ensure_ascii': False}  # type: ignore [misc]
 
 
+@final
 def dumps(items: Any) -> str:
     return _dumps(items, **SQLiteJsonConverter.json_kwargs)  # type: ignore [arg-type]
 
