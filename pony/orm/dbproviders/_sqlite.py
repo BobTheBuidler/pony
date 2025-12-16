@@ -9,7 +9,6 @@ from functools import wraps
 from random import random
 from typing import Any, Callable, Final, TypeVar, cast, final, overload
 
-import sqlite
 from typing_extensions import Concatenate, ParamSpec
 
 from pony.orm import dbapiprovider
