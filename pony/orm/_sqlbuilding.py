@@ -25,8 +25,8 @@ def adapter_numeric(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]
         return tuple(param.eval(values) for param in params)
     return adapter
 
-def adapter_named(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]], dict[str, str]]:
-    def adapter(values: dict[str, "Value"]) -> dict[str, str]:
+def adapter_named(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]], dict[str, Any]]:
+    def adapter(values: dict[str, "Value"]) -> dict[str, Any]:
         return {'p%d' % param.id: param.eval(values) for param in params}
     return adapter
 
