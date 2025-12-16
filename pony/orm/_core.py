@@ -229,6 +229,18 @@ def _get_by_raw_pkval_(
 
 def _attrs_with_bit_(entity: Type["Entity"], attrs: list["Attribute"], mask: int = -1) -> Iterator[Entity]:
     return _attrs_with_bit_(entity, attrs, mask)
+
+
+def _get_raw_pkval_(obj: "Entity") -> tuple[Any, ...]:
+    pkval = obj._pkval_
+    if not obj._pk_is_composite_:
+        if not obj._pk_attrs_[0].reverse: return (pkval,)
+        else: return pkval._get_raw_pkval_()
+    raw_pkval: list[Any] = []
+    for attr, val in zip(obj._pk_attrs_, pkval):
+        if not attr.reverse: raw_pkval.append(val)
+        else: raw_pkval.extend(val._get_raw_pkval_())
+    return tuple(raw_pkval)
   
 
 def _db_set_(obj: "Entity", avdict: Dict["Attribute", Any], unpickling: bool = False) -> None:
