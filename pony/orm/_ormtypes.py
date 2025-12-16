@@ -17,6 +17,51 @@ raw_sql_cache: Final[Dict[str, Parsed]] = {}
 function_types = {type, types.FunctionType, types.BuiltinFunctionType}
 
 
+@final
+class SetType:
+    def __deepcopy__(self, memo: Any) -> Self:
+        return self  # SetType instances are "immutable"
+    def __init__(self, item_type: type) -> None:
+        self.item_type: Final = item_type
+    def __eq__(self, other: Any) -> bool:
+        return type(other) is SetType and self.item_type == other.item_type
+    def __ne__(self, other: Any) -> bool:
+        return type(other) is not SetType or self.item_type != other.item_type
+    def __hash__(self) -> int:
+        return hash(self.item_type) + 1
+
+
+@final
+class FuncType:
+    def __deepcopy__(self, memo: Any) -> Self:
+        return self  # FuncType instances are "immutable"
+    def __init__(self, func: types.FunctionType) -> None:
+        self.func: Final = func
+    def __eq__(self, other: Any) -> bool:
+        return type(other) is FuncType and self.func == other.func
+    def __ne__(self, other: Any) -> bool:
+        return type(other) is not FuncType or self.func != other.func
+    def __hash__(self) -> int:
+        return hash(self.func) + 1
+    def __repr__(self) -> str:
+        return 'FuncType(%s at %d)' % (self.func.__name__, id(self.func))
+
+
+@final
+class MethodType:
+    def __deepcopy__(self, memo: Any) -> Self:
+        return self  # MethodType instances are "immutable"
+    def __init__(self, method: types.MethodType) -> None:
+        self.obj: Final = method.__self__
+        self.func: Final = method.__func__
+    def __eq__(self, other: Any) -> bool:
+        return type(other) is MethodType and self.obj == other.obj and self.func == other.func
+    def __ne__(self, other: Any) -> bool:
+        return type(other) is not MethodType or self.obj != other.obj or self.func != other.func
+    def __hash__(self) -> int:
+        return hash(self.obj) ^ hash(self.func)
+
+
 def parse_raw_sql(sql: str) -> Parsed:
     result = raw_sql_cache.get(sql)
     if result is not None: return result
@@ -107,24 +152,20 @@ def normalize(value: Any) -> Tuple[Any, Any]:
         return tuple(item_types), tuple(item_values)
 
     if (tname := t.__name__) == 'EntityMeta':
-        from pony.orm.ormtypes import SetType
-        return SetType(value), value  # type: ignore [no-untyped-call]
+        return SetType(value), value
 
     if tname == 'EntityIter':
-        from pony.orm.ormtypes import SetType
         entity = value.entity
-        return SetType(entity), entity  # type: ignore [no-untyped-call]
+        return SetType(entity), entity
 
     if isinstance(value, str):
         return str, value
 
     if t in function_types:
-        from pony.orm.ormtypes import FuncType
-        return FuncType(value), value  # type: ignore [no-untyped-call]
+        return FuncType(value), value
 
     if t is types.MethodType:
-        from pony.orm.ormtypes import MethodType
-        return MethodType(value), value  # type: ignore [no-untyped-call]
+        return MethodType(value), value
 
     if hasattr(value, '_get_type_'):
         return value._get_type_(), value
