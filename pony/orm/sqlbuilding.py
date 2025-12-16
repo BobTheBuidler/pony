@@ -10,7 +10,7 @@ from typing import Any, List, Literal, Sequence, Tuple, Union
 from pony import options
 from pony.utils import datetime2timestamp, throw, is_ident
 from pony.converting import timedelta2str
-from pony.orm._sqlbuilding import Value
+from pony.orm._sqlbuilding import Value, adapter_qmark, adapter_named, adapter_numeric
 from pony.orm.ormtypes import RawSQL, Json
 
 class AstError(Exception): pass
@@ -159,14 +159,11 @@ class SQLBuilder(object):
         builder.layout = layout
         builder.sql = u''.join(map(str, builder.result)).rstrip('\n')
         if paramstyle in ('qmark', 'format'):
-            def adapter(values):
-                return tuple(param.eval(values) for param in params)
+            adapter = adapter_qmark
         elif paramstyle == 'numeric':
-            def adapter(values):
-                return tuple(param.eval(values) for param in params)
+            adapter = adapter_numeric
         elif paramstyle in ('named', 'pyformat'):
-            def adapter(values):
-                return {'p%d' % param.id: param.eval(values) for param in params}
+            adapter = adapter_named
         else: throw(NotImplementedError, paramstyle)
         builder.params = params
         builder.adapter = adapter
