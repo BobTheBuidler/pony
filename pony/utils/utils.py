@@ -16,7 +16,7 @@ import pony
 from pony import options
 
 from pony.thirdparty.decorator import decorator as _decorator
-from pony.utils._utils import camelcase_name, coalesce, codeobjects, current_timestamp, datetime2timestamp, distinct, get_codeobject_id, get_lambda_args, group_concat, is_ident, is_utf8, lambda_args_cache, lowercase_name, mixedcase_name, parse_expr, split_name, timestamp2datetime, tostring, truncate_repr, uppercase_name
+from pony.utils._utils import camelcase_name, coalesce, codeobjects, current_timestamp, datetime2timestamp, deduplicate, deref_proxy, distinct, get_codeobject_id, get_lambda_args, group_concat, is_ident, is_utf8, lambda_args_cache, lowercase_name, mixedcase_name, parse_expr, split_name, timestamp2datetime, tostring, truncate_repr, uppercase_name
 
 if pony.MODE.startswith('GAE-'): localbase = object
 else: from threading import local as localbase
@@ -227,21 +227,3 @@ class HashableDict(dict):
     popitem = _hashable_wrap(dict.popitem)
     setdefault = _hashable_wrap(dict.setdefault)
     update = _hashable_wrap(dict.update)
-
-def deref_proxy(value):
-    t = type(value)
-    if t.__name__ == 'LocalProxy' and '_get_current_object' in t.__dict__:
-        # Flask local proxy
-        value = value._get_current_object()
-    elif t.__name__ == 'EntityProxy':
-        # Pony proxy
-        value = value._get_object()
-
-    return value
-
-def deduplicate(value, deduplication_cache):
-    t = type(value)
-    try:
-        return deduplication_cache[t].setdefault(value, value)
-    except:
-        return value
