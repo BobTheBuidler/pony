@@ -32,12 +32,8 @@ def adapter_named(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]],
 
 
 @mypyc_attr(allow_interpreted_subclasses=True)
-class Value(object):
-    def __init__(
-        self,
-        paramstyle: str,
-        value: ValueType,
-    ) -> None:
+class Value:
+    def __init__(self, paramstyle: str, value: ValueType) -> None:
         self.paramstyle: Final = paramstyle
         self.value: Final = value
     def __str__(self) -> str:
