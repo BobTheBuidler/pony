@@ -1,6 +1,6 @@
 import types
 from os import getpid
-from typing import Any, Final, final
+from typing import Any, Final
 
 from mypy_extensions import mypyc_attr
 
@@ -8,7 +8,6 @@ import pony
 from pony.utils import localbase
 
 
-@final
 @mypyc_attr(allow_interpreted_subclasses=True)
 class Pool(localbase):
     con: Any  # TODO: type this properly
