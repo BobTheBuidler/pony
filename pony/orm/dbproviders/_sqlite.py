@@ -9,6 +9,7 @@ import sqlite
 from typing_extensions import Concatenate, ParamSpec
 
 from pony.orm import dbapiprovider
+from pony.orm._dbapiprovider import Pool
 from pony.orm._sqlbuilding import Value
 from pony.utils import datetime2timestamp, timestamp2datetime
 
