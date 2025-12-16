@@ -275,13 +275,13 @@ def deref_proxy(value: _T) -> _T:
         # Pony proxy
         value = value._get_object()  # type: ignore [attr-defined]
 
-    return value  # type: ignore [no-any-return]
+    return value
 
 DeduplicationCache = dict[Type[_T], _T]
 
 def deduplicate(value: _T, deduplication_cache: DeduplicationCache[Any]) -> _T:
     t = type(value)
     try:
-        return deduplication_cache[t].setdefault(value, value)
+        return cast(_T, deduplication_cache[t].setdefault(value, value))
     except:
         return value
