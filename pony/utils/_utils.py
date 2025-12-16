@@ -267,16 +267,17 @@ def is_utf8(encoding: str) -> bool:
 
 def deref_proxy(value: _T) -> _T:
     t = type(value)
-    if t.__name__ == 'LocalProxy' and '_get_current_object' in t.__dict__:
+    tname = t.__name__
+    if tname == 'LocalProxy' and '_get_current_object' in t.__dict__:
         # Flask local proxy
         value = value._get_current_object()
-    elif t.__name__ == 'EntityProxy':
+    elif tname == 'EntityProxy':
         # Pony proxy
         value = value._get_object()
 
     return value
 
-def deduplicate(value: _T, deduplication_cache: dict[Type[Any], Any]): -> _T
+def deduplicate(value: _T, deduplication_cache: dict[Type[Any], Any]) -> _T:
     t = type(value)
     try:
         return deduplication_cache[t].setdefault(value, value)
