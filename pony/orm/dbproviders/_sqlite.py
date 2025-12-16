@@ -84,8 +84,8 @@ def dumps(items: Any) -> str:
 
 def py_json_unwrap(value: Any) -> str | None:
     # "[null,some_json]" -> "some_json"
-    if isinstance(value, str) and value.startswith('[null,'):
-        return value[6:-1]
+    if isinstance(value, str) and (string := value).startswith('[null,'):
+        return string[6:-1]
     return None
 
 path_cache: Final[dict[Any, Any]] = {}
@@ -96,12 +96,12 @@ def _parse_path(path: Any) -> Any:
     if path in path_cache:
         return path_cache[path]
     keys: Any = None
-    if isinstance(path, str) and path.startswith('$'):
+    if isinstance(path, str) and (path_str := path).startswith('$'):
         keys = []
         pos = 1
-        path_len = len(path)
+        path_len = len(path_str)
         while pos < path_len:
-            match = json_path_re.match(path, pos)
+            match = json_path_re.match(path_str, pos)
             if match is not None:
                 g1, g2, g3 = match.groups()
                 keys.append(int(g1) if g1 else g2 or g3)
