@@ -171,14 +171,14 @@ def py_json_array_length(expr: Any, path: Any = None) -> int:
         expr = _traverse(expr, keys)
     return len(expr) if type(expr) is list else 0
 
-def wrap_array_func(func: Callable[Concatenate[_L, _P], _T]) -> Callable[Concatenate[str | bytes | bytearray, _P], _T]:
+def wrap_array_func(func: Callable[Concatenate[_L, _P], _T]) -> Callable[Concatenate[str | bytes | bytearray | None, _P], _T]:
     @wraps(func)
     def new_func(array_json: str | bytes | bytearray | None, *args: _P.args, **_: _P.kwargs) -> _T | None:
         if array_json is None:
             return None
         array = _loads(array_json)
         return func(array, *args)  # type: ignore [call-arg]
-    return new_func  # type: ignore [return-value]
+    return new_func
 
 @wrap_array_func
 def py_array_index(array: list[_T], index: int) -> _T | None:
