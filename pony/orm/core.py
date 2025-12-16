@@ -3819,9 +3819,9 @@ class EntityMeta(type):
         entity._default_genexpr_ = ast.GeneratorExp(ast.Name(iter_name, ast.Load()), [comprehension])
 
         entity._access_rules_ = defaultdict(set)
-    def _initialize_bits_(entity):
-        entity._bits_ = {}
-        entity._bits_except_volatile_ = {}
+    def _initialize_bits_(entity) -> None:
+        entity._bits_: dict[Entity, int] = {}
+        entity._bits_except_volatile_: dict[Entity, int] = {}
         offset_counter = itertools.count()
         all_bits = all_bits_except_volatile = 0
         for attr in entity._attrs_:
@@ -3835,7 +3835,7 @@ class EntityMeta(type):
             entity._bits_except_volatile_[attr] = bit
         entity._all_bits_ = all_bits
         entity._all_bits_except_volatile_ = all_bits_except_volatile
-    def _resolve_attr_types_(entity):
+    def _resolve_attr_types_(entity) -> None:
         database = entity._database_
         for attr in entity._new_attrs_:
             py_type = attr.py_type
