@@ -227,10 +227,10 @@ def _get_by_raw_pkval_(
     return obj
 
 
-def _attrs_with_bit_(entity: Type["Entity"], attrs: list["Attribute"], mask: int = -1) -> Iterator["Attribute"]:
+def _attrs_with_bit_(entity: "EntityMeta", attrs: list["Attribute"], mask: int = -1) -> Iterator["Attribute"]:
     bits = entity._bits_
     for attr in attrs:
-        if bits.get(attr) & mask: yield attr
+        if bits.get(attr) & mask: yield attr  # type: ignore [call-overload]
 
 
 def _get_raw_pkval_(obj: "Entity") -> tuple["Entity", ...]:
