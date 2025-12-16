@@ -15,13 +15,13 @@ if TYPE_CHECKING:
 ValueType = Union[bool, str, datetime, date, timedelta, int, float, Decimal, bytes]
 
 
-def adapter_qmark(params: tuple["Param", ...]) -> Callable[[list["Value"]], tuple[str, ...]]:
-    def adapter(values: list["Value"]) -> tuple[str, ...]:
+def adapter_qmark(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]], tuple[str, ...]]:
+    def adapter(values: dict[str, "Value"]) -> tuple[str, ...]:
         return tuple(param.eval(values) for param in params)
     return adapter
 
-def adapter_numeric(params: tuple["Param", ...]) -> Callable[[list["Value"]], tuple[str, ...]]:
-    def adapter(values: list["Value"]) -> tuple[str, ...]:
+def adapter_numeric(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]], tuple[str, ...]]:
+    def adapter(values: dict[str, "Value"]) -> tuple[str, ...]:
         return tuple(param.eval(values) for param in params)
     return adapter
 
