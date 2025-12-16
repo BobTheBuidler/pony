@@ -14,20 +14,25 @@ if TYPE_CHECKING:
 
 ValueType = bool | str | datetime | date | timedelta | int | float | Decimal | bytes
 
+Params = tuple["Param", ...]
+
+InputValues = dict[str, "Value"]
+
 SQLValue = str | int
+SQLTuple = tuple[SQLValue, ...]
 
-def adapter_qmark(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]], tuple[str, ...]]:
-    def adapter(values: dict[str, "Value"]) -> tuple[str, ...]:
+def adapter_qmark(params: Params) -> Callable[[InputValues], SQLTuple]:
+    def adapter(values: InputValues) -> SQLTuple:
         return tuple(param.eval(values) for param in params)
     return adapter
 
-def adapter_numeric(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]], tuple[str, ...]]:
-    def adapter(values: dict[str, "Value"]) -> tuple[str, ...]:
+def adapter_numeric(params: Params) -> Callable[[InputValues], SQLTuple]:
+    def adapter(values: InputValues) -> SQLTuple:
         return tuple(param.eval(values) for param in params)
     return adapter
 
-def adapter_named(params: tuple["Param", ...]) -> Callable[[dict[str, "Value"]], dict[str, SQLValue]]:
-    def adapter(values: dict[str, "Value"]) -> dict[str, SQLValue]:
+def adapter_named(params: Params) -> Callable[[InputValues], dict[str, SQLValue]]:
+    def adapter(values: InputValues) -> dict[str, SQLValue]:
         return {'p%d' % param.id: param.eval(values) for param in params}
     return adapter
 
