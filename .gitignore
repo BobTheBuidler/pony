@@ -1,6 +1,7 @@
 *.pyc
 *.sqlite
 .idea
+.worktrees
 pony/orm/tests/.coverage
 pony/orm/tests/coverage.bat
 pony/orm/tests/htmlcov/*.*
