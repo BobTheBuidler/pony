@@ -5,23 +5,25 @@ from operator import attrgetter
 from decimal import Decimal
 from datetime import date, datetime, timedelta
 from binascii import hexlify
+from typing import Any, Final, List, Literal, Sequence, Tuple, Union
 
 from pony import options
 from pony.utils import datetime2timestamp, throw, is_ident
 from pony.converting import timedelta2str
+from pony.orm._sqlbuilding import SQLValue, Value, adapter_qmark, adapter_named, adapter_numeric
 from pony.orm.ormtypes import RawSQL, Json
 
 class AstError(Exception): pass
 
 class Param(object):
     __slots__ = 'style', 'id', 'paramkey', 'converter', 'optimistic'
-    def __init__(param, paramstyle, paramkey, converter=None, optimistic=False):
+    def __init__(param, paramstyle: str, paramkey, converter=None, optimistic: bool = False):
         param.style = paramstyle
-        param.id = None
+        param.id: int = None
         param.paramkey = paramkey
         param.converter = converter
-        param.optimistic = optimistic
-    def eval(param, values):
+        param.optimistic: Final = optimistic
+    def eval(param, values) -> SQLValue:
         varkey, i, j = param.paramkey
         value = values[varkey]
         if i is not None:
@@ -39,7 +41,7 @@ class Param(object):
                 value = converter.val2dbval(value)
             value = converter.py2sql(value)
         return value
-    def __str__(param):
+    def __str__(param) -> str:
         paramstyle = param.style
         if paramstyle == 'qmark': return u'?'
         elif paramstyle == 'format': return u'%s'
@@ -47,12 +49,12 @@ class Param(object):
         elif paramstyle == 'named': return u':p%d' % param.id
         elif paramstyle == 'pyformat': return u'%%(p%d)s' % param.id
         else: throw(NotImplementedError)
-    def __repr__(param):
+    def __repr__(param) -> None:
         return '%s(%r)' % (param.__class__.__name__, param.paramkey)
 
 class CompositeParam(Param):
     __slots__ = 'items', 'func'
-    def __init__(param, paramstyle, paramkey, items, func):
+    def __init__(param, paramstyle: str, paramkey, items: Sequence[Union[Param, Value]], func) -> None:
         for item in items: assert isinstance(item, (Param, Value)), item
         Param.__init__(param, paramstyle, paramkey)
         param.items = items
@@ -60,36 +62,6 @@ class CompositeParam(Param):
     def eval(param, values):
         args = [ item.eval(values) if isinstance(item, Param) else item.value for item in param.items ]
         return param.func(args)
-
-class Value(object):
-    __slots__ = 'paramstyle', 'value'
-    def __init__(self, paramstyle, value):
-        self.paramstyle = paramstyle
-        self.value = value
-    def __str__(self):
-        value = self.value
-        if value is None:
-            return 'null'
-        if isinstance(value, bool):
-            return value and '1' or '0'
-        if isinstance(value, str):
-            return self.quote_str(value)
-        if isinstance(value, datetime):
-            return 'TIMESTAMP ' + self.quote_str(datetime2timestamp(value))
-        if isinstance(value, date):
-            return 'DATE ' + self.quote_str(str(value))
-        if isinstance(value, timedelta):
-            return "INTERVAL '%s' HOUR TO SECOND" % timedelta2str(value)
-        if isinstance(value, (int, float, Decimal)):
-            return str(value)
-        if isinstance(value, bytes):
-            return "X'%s'" % hexlify(value).decode('ascii')
-        assert False, repr(value)  # pragma: no cover
-    def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self.value)
-    def quote_str(self, s):
-        if self.paramstyle in ('format', 'pyformat'): s = s.replace('%', '%%')
-        return "'%s'" % s.replace("'", "''")
 
 def flat(tree):
     stack = [ tree ]
@@ -142,19 +114,19 @@ def move_conditions_from_inner_join_to_where(sections):
     return new_sections
 
 def make_binary_op(symbol, default_parentheses=False):
-    def binary_op(builder, expr1, expr2, parentheses=None):
+    def binary_op(builder: "SQLBuilder", expr1, expr2, parentheses=None):
         if parentheses is None: parentheses = default_parentheses
         if parentheses: return '(', builder(expr1), symbol, builder(expr2), ')'
         return builder(expr1), symbol, builder(expr2)
     return binary_op
 
 def make_unary_func(symbol):
-    def unary_func(builder, expr):
+    def unary_func(builder: "SQLBuilder", expr):
         return '%s(' % symbol, builder(expr), ')'
     return unary_func
 
 def indentable(method):
-    def new_method(builder, *args, **kwargs):
+    def new_method(builder: "SQLBuilder", *args, **kwargs):
         result = method(builder, *args, **kwargs)
         if builder.indent <= 1: return result
         return builder.indent_spaces * (builder.indent-1), result
@@ -169,7 +141,7 @@ class SQLBuilder(object):
     indent_spaces = " " * 4
     least_func_name = 'least'
     greatest_func_name = 'greatest'
-    def __init__(builder, provider, ast):
+    def __init__(builder, provider, ast: Sequence[str]) -> None:
         builder.provider = provider
         builder.quote_name = provider.quote_name
         builder.paramstyle = paramstyle = provider.paramstyle
@@ -187,18 +159,15 @@ class SQLBuilder(object):
         builder.layout = layout
         builder.sql = u''.join(map(str, builder.result)).rstrip('\n')
         if paramstyle in ('qmark', 'format'):
-            def adapter(values):
-                return tuple(param.eval(values) for param in params)
+            adapter = adapter_qmark(params)
         elif paramstyle == 'numeric':
-            def adapter(values):
-                return tuple(param.eval(values) for param in params)
+            adapter = adapter_numeric(params)
         elif paramstyle in ('named', 'pyformat'):
-            def adapter(values):
-                return {'p%d' % param.id: param.eval(values) for param in params}
+            adapter = adapter_named(params)
         else: throw(NotImplementedError, paramstyle)
         builder.params = params
         builder.adapter = adapter
-    def __call__(builder, ast):
+    def __call__(builder, ast: Sequence[str]) -> Any:
         if isinstance(ast, str):
             throw(AstError, 'An SQL AST list was expected. Got string: %r' % ast)
         symbol = ast[0]
@@ -218,17 +187,17 @@ class SQLBuilder(object):
 ##            else:
 ##                del traceback
 ##                raise
-    def INSERT(builder, table_name, columns, values, returning=None):
+    def INSERT(builder, table_name: str, columns, values, returning=None) -> List[str]:
         return [ 'INSERT INTO ', builder.quote_name(table_name), ' (',
                  join(', ', [builder.quote_name(column) for column in columns ]),
-                 ') VALUES (', join(', ', [builder(value) for value in values]), ')' ]
-    def DEFAULT(builder):
+                 ') VALUES (', join(', ', list(map(builder, values))), ')' ]
+    def DEFAULT(builder) -> Literal["DEFAULT"]:
         return 'DEFAULT'
-    def UPDATE(builder, table_name, pairs, where=None):
+    def UPDATE(builder, table_name: str, pairs, where=None) -> List[str]:
         return [ 'UPDATE ', builder.quote_name(table_name), '\nSET ',
                  join(', ', [ (builder.quote_name(name), ' = ', builder(param)) for name, param in pairs]),
                  where and [ '\n', builder(where) ] or [] ]
-    def DELETE(builder, alias, from_ast, where=None):
+    def DELETE(builder, alias, from_ast, where=None) -> Tuple[str, str, str]:
         builder.indent += 1
         if alias is not None:
             assert isinstance(alias, str)
@@ -241,14 +210,14 @@ class SQLBuilder(object):
             if alias is not None: builder.suppress_aliases = True
             if not where: return 'DELETE ', builder(from_ast)
             return 'DELETE ', builder(from_ast), builder(where)
-    def _subquery(builder, *sections):
+    def _subquery(builder, *sections) -> List[str]:
         builder.indent += 1
         if not builder.inner_join_syntax:
             sections = move_conditions_from_inner_join_to_where(sections)
-        result = [ builder(s) for s in sections ]
+        result = list(map(builder, sections))
         builder.indent -= 1
         return result
-    def SELECT(builder, *sections):
+    def SELECT(builder, *sections) -> List[str]:
         prev_suppress_aliases = builder.suppress_aliases
         builder.suppress_aliases = False
         try:
@@ -273,19 +242,19 @@ class SQLBuilder(object):
         return 'NOT ', builder.EXISTS(*sections)
     @indentable
     def ALL(builder, *expr_list):
-        exprs = [ builder(e) for e in expr_list ]
+        exprs = list(map(builder, expr_list))
         return 'SELECT ', join(', ', exprs), '\n'
     @indentable
-    def DISTINCT(builder, *expr_list):
-        exprs = [ builder(e) for e in expr_list ]
+    def DISTINCT(builder, *expr_list) -> str:
+        exprs = list(map(builder, expr_list))
         return 'SELECT DISTINCT ', join(', ', exprs), '\n'
     @indentable
-    def AGGREGATES(builder, *expr_list):
-        exprs = [ builder(e) for e in expr_list ]
+    def AGGREGATES(builder, *expr_list) -> str:
+        exprs = list(map(builder, expr_list))
         return 'SELECT ', join(', ', exprs), '\n'
     def AS(builder, expr, alias):
         return builder(expr), ' AS ', builder.quote_name(alias)
-    def compound_name(builder, name_parts):
+    def compound_name(builder, name_parts) -> str:
         return '.'.join(p and builder.quote_name(p) or '' for p in name_parts)
     def sql_join(builder, join_type, sources):
         indent = builder.indent_spaces * (builder.indent-1)
@@ -345,7 +314,7 @@ class SQLBuilder(object):
         return result
     @indentable
     def GROUP_BY(builder, *expr_list):
-        exprs = [ builder(e) for e in expr_list ]
+        exprs = list(map(builder, expr_list))
         return 'GROUP BY ', join(', ', exprs), '\n'
     @indentable
     def UNION(builder, kind, *sections):

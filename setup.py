@@ -106,6 +106,29 @@ package_data = {
     'pony.orm.tests': ['queries.txt']
 }
 
+
+#try:
+#    from mypyc.build import mypycify
+#    ext_modules = []
+#except ImportError:
+
+from mypyc.build import mypycify
+
+mypyc_files = [
+    "pony/converting.py",
+    "pony/orm/sqlsymbols.py",
+    "pony/py23compat.py",
+    "pony/orm/_core.py",
+    "pony/orm/_ormtypes.py",
+    "pony/orm/_sqlbuilding.py",
+    "pony/orm/dbproviders/_sqlite.py",
+    "pony/utils/_strptime.py",
+    "pony/utils/_utils.py",
+    "pony/utils/properties.py",
+]
+
+ext_modules = mypycify([*mypyc_files, "--strict", "--follow-imports=silent"])
+
 download_url = "http://pypi.python.org/pypi/pony/"
 
 if __name__ == "__main__":
@@ -119,6 +142,7 @@ if __name__ == "__main__":
     setup(
         name=name,
         version=version,
+        python_requires=">=3.9",
         description=description,
         long_description=long_description,
         classifiers=classifiers,
@@ -130,5 +154,22 @@ if __name__ == "__main__":
         packages=packages,
         package_data=package_data,
         download_url=download_url,
-        test_suite='setup.test_suite'
+        test_suite='setup.test_suite',
+        ext_modules=ext_modules,
     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

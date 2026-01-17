@@ -9,13 +9,19 @@ from threading import Lock
 from uuid import UUID
 from binascii import hexlify
 from functools import wraps
+from typing import Any, Callable, Final, final
 
 from pony.orm import core, dbschema, dbapiprovider
+from pony.orm._sqlbuilding import Value
 from pony.orm.core import log_orm
 from pony.orm.ormtypes import Json, TrackedArray
 from pony.orm.sqltranslation import SQLTranslator, StringExprMonad
 from pony.orm.sqlbuilding import SQLBuilder, Value, join, make_unary_func
 from pony.orm.dbapiprovider import DBAPIProvider, Pool, wrap_dbapi_exceptions
+from pony.orm.dbproviders._sqlite import SQLiteJsonConverter, SQLiteDateConverter, SQLiteDatetimeConverter, SQLiteTimeConverter, SQLiteTimedeltaConverter, SQLiteValue, \
+    dumps, json_path_re, path_cache, py_array_contains, py_array_index, py_array_length, py_array_slice, py_array_subset, py_json_array_length, \
+    py_json_contains, py_json_extract, py_json_nonzero, py_json_query, py_json_unwrap, py_json_value, py_lower, py_make_array, py_string_slice, py_upper, wrap_array_func, \
+    _extract, _parse_path, _text_factory, _traverse
 from pony.utils import datetime2timestamp, timestamp2datetime, absolutize_path, localbase, throw, reraise, \
     cut_traceback_depth
 
@@ -51,18 +57,6 @@ class SQLiteTranslator(SQLTranslator):
 
     StringMixin_UPPER = make_overriden_string_func('PY_UPPER')
     StringMixin_LOWER = make_overriden_string_func('PY_LOWER')
-
-class SQLiteValue(Value):
-    __slots__ = []
-    def __str__(self):
-        value = self.value
-        if isinstance(value, datetime.datetime):
-            return self.quote_str(datetime2timestamp(value))
-        if isinstance(value, datetime.date):
-            return self.quote_str(str(value))
-        if isinstance(value, datetime.timedelta):
-            return repr(value.total_seconds() / (24 * 60 * 60))
-        return Value.__str__(self)
 
 class SQLiteBuilder(SQLBuilder):
     dialect = 'SQLite'
@@ -227,44 +221,6 @@ class SQLiteDecimalConverter(dbapiprovider.DecimalConverter):
                 throw(ValueError, 'Cannot store %s Decimal value in database' % val)
             val = val.quantize(exp)
         return str(val)
-
-class SQLiteDateConverter(dbapiprovider.DateConverter):
-    def sql2py(converter, val):
-        try:
-            time_tuple = time.strptime(val[:10], '%Y-%m-%d')
-            return datetime.date(*time_tuple[:3])
-        except: return val
-    def py2sql(converter, val):
-        return val.strftime('%Y-%m-%d')
-
-class SQLiteTimeConverter(dbapiprovider.TimeConverter):
-    def sql2py(converter, val):
-        try:
-            if len(val) <= 8: dt = datetime.strptime(val, '%H:%M:%S')
-            else: dt = datetime.strptime(val, '%H:%M:%S.%f')
-            return dt.datetime.time()
-        except: return val
-    def py2sql(converter, val):
-        return val.isoformat()
-
-class SQLiteTimedeltaConverter(dbapiprovider.TimedeltaConverter):
-    def sql2py(converter, val):
-        return datetime.timedelta(days=val)
-    def py2sql(converter, val):
-        return val.days + (val.seconds + val.microseconds / 1000000.0) / 86400.0
-
-class SQLiteDatetimeConverter(dbapiprovider.DatetimeConverter):
-    def sql2py(converter, val):
-        try: return timestamp2datetime(val)
-        except: return val
-    def py2sql(converter, val):
-        return datetime2timestamp(val)
-
-class SQLiteJsonConverter(dbapiprovider.JsonConverter):
-    json_kwargs = {'separators': (',', ':'), 'sort_keys': True, 'ensure_ascii': False}
-
-def dumps(items):
-    return json.dumps(items, **SQLiteJsonConverter.json_kwargs)
 
 class SQLiteArrayConverter(dbapiprovider.ArrayConverter):
     array_types = {
@@ -498,165 +454,16 @@ class SQLiteProvider(DBAPIProvider):
 
 provider_cls = SQLiteProvider
 
-def _text_factory(s):
-    return s.decode('utf8', 'replace')
 
-def make_string_function(name, base_func):
-    def func(value):
-        if value is None:
-            return None
-        t = type(value)
-        if t is not str:
-            if t is buffer:
-                value = hexlify(value).decode('ascii')
-            else:
-                value = str(value)
-        result = base_func(value)
-        return result
-    func.__name__ = name
-    return func
-
-py_upper = make_string_function('py_upper', str.upper)
-py_lower = make_string_function('py_lower', str.lower)
-
-def py_json_unwrap(value):
-    # "[null,some_json]" -> "some_json"
-    if isinstance(value, str) and value.startswith('[null,'):
-        return value[6:-1]
-    return None
-
-path_cache = {}
-
-json_path_re = re.compile(r'\[(-?\d+)\]|\.(?:(\w+)|"([^"]*)")', re.UNICODE)
-
-def _parse_path(path):
-    if path in path_cache:
-        return path_cache[path]
-    keys = None
-    if isinstance(path, str) and path.startswith('$'):
-        keys = []
-        pos = 1
-        path_len = len(path)
-        while pos < path_len:
-            match = json_path_re.match(path, pos)
-            if match is not None:
-                g1, g2, g3 = match.groups()
-                keys.append(int(g1) if g1 else g2 or g3)
-                pos = match.end()
-            else:
-                keys = None
-                break
-        else: keys = tuple(keys)
-    path_cache[path] = keys
-    return keys
-
-def _traverse(obj, keys):
-    if keys is None: return None
-    list_or_dict = (list, dict)
-    for key in keys:
-        if type(obj) not in list_or_dict: return None
-        try: obj = obj[key]
-        except (KeyError, IndexError): return None
-    return obj
-
-def _extract(expr, *paths):
-    expr = json.loads(expr) if isinstance(expr, str) else expr
-    result = []
-    for path in paths:
-        keys = _parse_path(path)
-        result.append(_traverse(expr, keys))
-    return result[0] if len(paths) == 1 else result
-
-def py_json_extract(expr, *paths):
-    result = _extract(expr, *paths)
-    if type(result) in (list, dict):
-        result = json.dumps(result, **SQLiteJsonConverter.json_kwargs)
-    return result
-
-def py_json_query(expr, path, with_wrapper):
-    result = _extract(expr, path)
-    if type(result) not in (list, dict):
-        if not with_wrapper: return None
-        result = [result]
-    return json.dumps(result, **SQLiteJsonConverter.json_kwargs)
-
-def py_json_value(expr, path):
-    result = _extract(expr, path)
-    return result if type(result) not in (list, dict) else None
-
-def py_json_contains(expr, path, key):
-    expr = json.loads(expr) if isinstance(expr, str) else expr
-    keys = _parse_path(path)
-    expr = _traverse(expr, keys)
-    return type(expr) in (list, dict) and key in expr
-
-def py_json_nonzero(expr, path):
-    expr = json.loads(expr) if isinstance(expr, str) else expr
-    keys = _parse_path(path)
-    expr = _traverse(expr, keys)
-    return bool(expr)
-
-def py_json_array_length(expr, path=None):
-    expr = json.loads(expr) if isinstance(expr, str) else expr
-    if path:
-        keys = _parse_path(path)
-        expr = _traverse(expr, keys)
-    return len(expr) if type(expr) is list else 0
-
-def wrap_array_func(func):
-    @wraps(func)
-    def new_func(array, *args):
-        if array is None:
-            return None
-        array = json.loads(array)
-        return func(array, *args)
-    return new_func
-
-@wrap_array_func
-def py_array_index(array, index):
-    try:
-        return array[index]
-    except IndexError:
-        return None
-
-@wrap_array_func
-def py_array_contains(array, item):
-    return item in array
-
-@wrap_array_func
-def py_array_subset(array, items):
-    if items is None: return None
-    items = json.loads(items)
-    return set(items).issubset(set(array))
-
-@wrap_array_func
-def py_array_length(array):
-    return len(array)
-
-@wrap_array_func
-def py_array_slice(array, start, stop):
-    return dumps(array[start:stop])
-
-def py_make_array(*items):
-    return dumps(items)
-
-def py_string_slice(s, start, end):
-    if s is None:
-        return None
-    if isinstance(start, str):
-        start = int(start)
-    if isinstance(end, str):
-        end = int(end)
-    return s[start:end]
-
+@final
 class SQLitePool(Pool):
-    def __init__(pool, is_shared_memory_db, filename, create_db, **kwargs): # called separately in each thread
-        pool.is_shared_memory_db = is_shared_memory_db
-        pool.filename = filename
-        pool.create_db = create_db
+    def __init__(pool, is_shared_memory_db: bool, filename: str, create_db: bool, **kwargs: Any): # called separately in each thread
+        pool.is_shared_memory_db: Final = is_shared_memory_db
+        pool.filename: Final = filename
+        pool.create_db: Final = create_db
         pool.kwargs = kwargs
-        pool.con = None
-    def _connect(pool):
+        pool.con: Any = None
+    def _connect(pool) -> None:
         filename = pool.filename
         if pool.is_shared_memory_db or pool.filename == ':memory:':
             pass
@@ -666,8 +473,8 @@ class SQLitePool(Pool):
         pool.con = con = sqlite.connect(filename, isolation_level=None, **pool.kwargs)
         con.text_factory = _text_factory
 
-        def create_function(name, num_params, func):
-            func = keep_exception(func)
+        def create_function(name: str, num_params: int, func: Callable[..., Any]) -> None:
+            func = keep_exception(func)  # type: ignore [no-untyped-call]
             con.create_function(name, num_params, func)
 
         create_function('power', 2, pow)
@@ -693,13 +500,13 @@ class SQLitePool(Pool):
             con.execute('PRAGMA foreign_keys = true')
 
         con.execute('PRAGMA case_sensitive_like = true')
-    def disconnect(pool):
+    def disconnect(pool) -> None:
         if pool.is_shared_memory_db or pool.filename == ':memory:':
             pass
         else:
-            Pool.disconnect(pool)
-    def drop(pool, con):
+            super().disconnect()
+    def drop(pool, con: Any) -> None:
         if pool.is_shared_memory_db or pool.filename == ':memory:':
             con.rollback()
         else:
-            Pool.drop(pool, con)
+            super().drop(con)

@@ -13,9 +13,14 @@ from collections import defaultdict
 from hashlib import md5
 from inspect import isgeneratorfunction
 from functools import wraps
+from typing import Any, DefaultDict, Dict, Final, Iterator, List, NoReturn, Optional, Tuple, Union, final
+from typing import Set as typing_Set
+
+from typing_extensions import Self
 
 import pony
 from pony import options
+from pony.orm._core import DEFAULT, NOT_LOADED, QueryResultIterator, adapt_sql, db_update_reverse, new_instance_id_counter, _attrs_with_bit_, _db_set_, _get_by_raw_pkval_, _get_from_identity_map_, _get_raw_pkval_, _parse_row_
 from pony.orm.decompiling import decompile
 from pony.orm.ormtypes import (
     LongStr, LongUnicode, numeric_types, raw_sql, RawSQL, normalize, Json, TrackedValue, QueryType,
@@ -116,7 +121,6 @@ def args2str(args):
     elif isinstance(args, dict):
         return '{%s}' % ', '.join('%s:%s' % (repr(key), repr(val)) for key, val in sorted(args.items()))
 
-adapted_sql_cache = {}
 string2ast_cache = {}
 
 class OrmError(Exception): pass
@@ -216,61 +220,6 @@ class DatabaseContainsIncorrectValue(PonyRuntimeWarning):
 class DatabaseContainsIncorrectEmptyValue(DatabaseContainsIncorrectValue):
     pass
 
-def adapt_sql(sql, paramstyle):
-    result = adapted_sql_cache.get((sql, paramstyle))
-    if result is not None: return result
-    pos = 0
-    result = []
-    args = []
-    kwargs = {}
-    original_sql = sql
-    if paramstyle in ('format', 'pyformat'): sql = sql.replace('%', '%%')
-    while True:
-        try: i = sql.index('$', pos)
-        except ValueError:
-            result.append(sql[pos:])
-            break
-        result.append(sql[pos:i])
-        if sql[i+1] == '$':
-            result.append('$')
-            pos = i+2
-        else:
-            try: expr, _ = parse_expr(sql, i+1)
-            except ValueError:
-                raise # TODO
-            pos = i+1 + len(expr)
-            if expr.endswith(';'): expr = expr[:-1]
-            compile(expr, '<?>', 'eval')  # expr correction check
-            if paramstyle == 'qmark':
-                args.append(expr)
-                result.append('?')
-            elif paramstyle == 'format':
-                args.append(expr)
-                result.append('%s')
-            elif paramstyle == 'numeric':
-                args.append(expr)
-                result.append(':%d' % len(args))
-            elif paramstyle == 'named':
-                key = 'p%d' % (len(kwargs) + 1)
-                kwargs[key] = expr
-                result.append(':' + key)
-            elif paramstyle == 'pyformat':
-                key = 'p%d' % (len(kwargs) + 1)
-                kwargs[key] = expr
-                result.append('%%(%s)s' % key)
-            else: throw(NotImplementedError)
-    if args or kwargs:
-        adapted_sql = ''.join(result)
-        if args: source = '(%s,)' % ', '.join(args)
-        else: source = '{%s}' % ','.join('%r:%s' % item for item in kwargs.items())
-        code = compile(source, '<?>', 'eval')
-    else:
-        adapted_sql = original_sql.replace('$$', '$')
-        code = compile('None', '<?>', 'eval')
-    result = adapted_sql, code
-    adapted_sql_cache[(sql, paramstyle)] = result
-    return result
-
 
 class PrefetchContext(object):
     def __init__(self, database=None):
@@ -306,34 +255,39 @@ class PrefetchContext(object):
             self.relations_to_prefetch_cache[entity] = result
         return result
 
-
+        
+@final
 class Local(localbase):
-    def __init__(local):
-        local.debug = False
-        local.show_values = None
-        local.debug_stack = []
+    def __init__(local) -> None:
+        local.debug: bool = False
+        local.show_values: Optional[bool] = None
+        local.debug_stack: List[Tuple[bool, Optional[bool]]] = []
         local.db2cache = {}
         local.db_context_counter = 0
-        local.db_session = None
-        local.prefetch_context_stack = []
-        local.current_user = None
-        local.perms_context = None
+        local.db_session: Optional["DBSessionContextManager"] = None
+        local.prefetch_context_stack: Final[List["PrefetchContext"]] = []
+        local.current_user: Any = None
+        local.perms_context: Any = None
         local.user_groups_cache = {}
-        local.user_roles_cache = defaultdict(dict)
+        local.user_roles_cache: Final = defaultdict(dict)
     @property
-    def prefetch_context(local):
-        if local.prefetch_context_stack:
-            return local.prefetch_context_stack[-1]
+    def prefetch_context(local) -> Optional["PrefetchContext"]:
+        if prefetch_context_stack := local.prefetch_context_stack:
+            return prefetch_context_stack[-1]
         return None
-    def push_debug_state(local, debug, show_values):
+    def push_debug_state(local, debug: bool, show_values: Optional[bool]) -> None:
+        from pony.orm.core import suppress_debug_change
+      
         local.debug_stack.append((local.debug, local.show_values))
         if not suppress_debug_change:
             local.debug = debug
             local.show_values = show_values
-    def pop_debug_state(local):
+    def pop_debug_state(local) -> None:
         local.debug, local.show_values = local.debug_stack.pop()
 
-local = Local()
+
+local: Final = Local()
+
 
 def _get_caches():
     return list(sorted((cache for cache in local.db2cache.values()),
@@ -1729,32 +1683,35 @@ class QueryStat(object):
 
 num_counter = itertools.count()
 
-class SessionCache(object):
-    def __init__(cache, database):
-        cache.is_alive = True
+@final
+class SessionCache:
+    def __init__(cache, database: Database) -> None:
+        cache.is_alive: bool = True
         cache.num = next(num_counter)
         cache.database = database
-        cache.objects = set()
+        cache.objects: typing_Set["Entity"] = set()
         cache.indexes = defaultdict(dict)
         cache.seeds = defaultdict(set)
         cache.max_id_cache = {}
         cache.collection_statistics = {}
         cache.for_update = set()
-        cache.noflush_counter = 0
+        cache.noflush_counter: int = 0
         cache.modified_collections = defaultdict(set)
-        cache.objects_to_save = []
-        cache.saved_objects = []
+        cache.objects_to_save: List["Entity"] = []
+        cache.saved_objects: List[Tuple["Entity", str]] = []
         cache.query_results = {}
         cache.dbvals_deduplication_cache = defaultdict(dict)
-        cache.modified = False
+        cache.modified: bool = False
         cache.db_session = db_session = local.db_session
-        cache.immediate = db_session is not None and db_session.immediate
-        cache.connection = None
-        cache.in_transaction = False
+        cache.immediate: bool = db_session is not None and db_session.immediate
+        cache.connection: Any = None
+        cache.in_transaction: bool = False
         cache.saved_fk_state = None
-        cache.perm_cache = defaultdict(lambda : defaultdict(dict))  # user -> perm -> cls_or_attr_or_obj -> bool
-        cache.user_roles_cache = defaultdict(dict)  # user -> obj -> roles
-        cache.obj_labels_cache = {}  # obj -> labels
+        cache.perm_cache: DefaultDict[str, DefaultDict[int, Dict[str, bool]]] = defaultdict(  # user -> perm -> cls_or_attr_or_obj -> bool
+            lambda : defaultdict(dict)
+        )
+        cache.user_roles_cache: DefaultDict[str, Dict[str, str]] = defaultdict(dict)  # user -> obj -> roles
+        cache.obj_labels_cache: Dict["Entity", List[str]] = {}  # obj -> labels
     def connect(cache):
         assert cache.connection is None
         if cache.in_transaction: throw(ConnectionClosedError,
@@ -1829,7 +1786,7 @@ class SessionCache(object):
         cache.close(rollback=True)
     def release(cache):
         cache.close(rollback=False)
-    def close(cache, rollback=True):
+    def close(cache, rollback: bool = True):
         assert cache.is_alive
         if not rollback: assert not cache.in_transaction
         database = cache.database
@@ -1864,11 +1821,11 @@ class SessionCache(object):
                 = cache.indexes = cache.seeds = cache.for_update = cache.max_id_cache \
                 = cache.modified_collections = cache.collection_statistics = cache.dbvals_deduplication_cache = None
     @contextmanager
-    def flush_disabled(cache):
+    def flush_disabled(cache) -> Iterator[None]:
         cache.noflush_counter += 1
         try: yield
         finally: cache.noflush_counter -= 1
-    def flush(cache):
+    def flush(cache) -> None:
         if cache.noflush_counter: return
         assert cache.is_alive
         assert not cache.saved_objects
@@ -1982,28 +1939,18 @@ class SessionCache(object):
                                  % (obj2.__class__.__name__, ', '.join(attr.name for attr in attrs), key_str))
         cache_index.pop(prev_vals, None)
 
-class NotLoadedValueType(object):
-    def __repr__(self): return 'NOT_LOADED'
-
-NOT_LOADED = NotLoadedValueType()
-
-class DefaultValueType(object):
-    def __repr__(self): return 'DEFAULT'
-
-DEFAULT = DefaultValueType()
-
 class DescWrapper(object):
     def __init__(self, attr):
         self.attr = attr
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<DescWrapper(%s)>' % self.attr
-    def __call__(self):
+    def __call__(self) -> Self:
         return self
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return type(other) is DescWrapper and self.attr == other.attr
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return type(other) is not DescWrapper or self.attr != other.attr
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.attr) + 1
 
 attr_id_counter = itertools.count(1)
@@ -2021,19 +1968,18 @@ class Attribute(object):
     @cut_traceback
     def __init__(attr, py_type, *args, **kwargs):
         if attr.__class__ is Attribute: throw(TypeError, "'Attribute' is abstract type")
-        attr.is_implicit = False
+        attr.is_implicit: bool = False
         attr.is_required = isinstance(attr, Required)
         attr.is_discriminator = isinstance(attr, Discriminator)
-        attr.is_unique = kwargs.pop('unique', None)
+        attr.is_unique: Optional[bool] = kwargs.pop('unique', None)
         if isinstance(attr, PrimaryKey):
             if attr.is_unique is not None:
                 throw(TypeError, "'unique' option cannot be set for PrimaryKey attribute ")
             attr.is_unique = True
-        attr.nullable = kwargs.pop('nullable', None)
+        attr.nullable: Optional[bool] = kwargs.pop('nullable', None)
         attr.is_part_of_unique_index = attr.is_unique  # Also can be set to True later
         attr.is_pk = isinstance(attr, PrimaryKey)
-        if attr.is_pk: attr.pk_offset = 0
-        else: attr.pk_offset = None
+        attr.pk_offset = 0 if attr.is_pk else None
         attr.id = next(attr_id_counter)
         if not isinstance(py_type, (type, str, types.FunctionType, Array)):
             if py_type is datetime: throw(TypeError,
@@ -2045,48 +1991,52 @@ class Attribute(object):
         attr.is_collection = isinstance(attr, Collection)
         attr.is_relation = isinstance(attr.py_type, (EntityMeta, str, types.FunctionType))
         attr.is_basic = not attr.is_collection and not attr.is_relation
-        attr.sql_type = kwargs.pop('sql_type', None)
+        attr.sql_type: Optional[str] = kwargs.pop('sql_type', None)
         attr.entity = attr.name = None
         attr.args = args
-        attr.auto = kwargs.pop('auto', False)
-        attr.cascade_delete = kwargs.pop('cascade_delete', None)
+        attr.auto: bool = kwargs.pop('auto', False)
+        attr.cascade_delete: Optional[bool] = kwargs.pop('cascade_delete', None)
 
-        attr.reverse = kwargs.pop('reverse', None)
+        attr.reverse: Optional[Attribute] = kwargs.pop('reverse', None)
         if not attr.reverse: pass
         elif not isinstance(attr.reverse, (str, Attribute)):
             throw(TypeError, "Value of 'reverse' option must be name of reverse attribute). Got: %r" % attr.reverse)
         elif not attr.is_relation:
             throw(TypeError, 'Reverse option cannot be set for this type: %r' % attr.py_type)
 
-        attr.column = kwargs.pop('column', None)
-        attr.columns = kwargs.pop('columns', None)
-        if attr.column is not None:
-            if attr.columns is not None:
+        column = kwargs.pop('column', None)
+        columns: Union[List[str], Tuple[str, ...], None] = kwargs.pop('columns', None)
+        if column is not None:
+            if columns is not None:
                 throw(TypeError, "Parameters 'column' and 'columns' cannot be specified simultaneously")
-            if not isinstance(attr.column, str):
-                throw(TypeError, "Parameter 'column' must be a string. Got: %r" % attr.column)
-            attr.columns = [ attr.column ]
-        elif attr.columns is not None:
-            if not isinstance(attr.columns, (tuple, list)):
+            if not isinstance(column, str):
+                throw(TypeError, "Parameter 'column' must be a string. Got: %r" % column)
+            attr.column = column
+            attr.columns = [ column ]
+        elif columns is not None:
+            if not isinstance(columns, (tuple, list)):
                 throw(TypeError, "Parameter 'columns' must be a list. Got: %r'" % attr.columns)
-            for column in attr.columns:
+            for column in columns:
                 if not isinstance(column, str):
                     throw(TypeError, "Items of parameter 'columns' must be strings. Got: %r" % attr.columns)
-            if len(attr.columns) == 1: attr.column = attr.columns[0]
-        else: attr.columns = []
-        attr.index = kwargs.pop('index', None)
-        attr.reverse_index = kwargs.pop('reverse_index', None)
-        attr.fk_name = kwargs.pop('fk_name', None)
+            attr.columns = columns
+            attr.column = columns[0] if len(columns) == 1 else None
+        else:
+            attr.column = None
+            attr.columns = []
+        attr.index: Optional[bool] = kwargs.pop('index', None)
+        attr.reverse_index: Optional[bool] = kwargs.pop('reverse_index', None)
+        attr.fk_name: Optional[str] = kwargs.pop('fk_name', None)
         attr.col_paths = []
-        attr._columns_checked = False
+        attr._columns_checked: bool = False
         attr.composite_keys = []
-        attr.lazy = kwargs.pop('lazy', getattr(py_type, 'lazy', False))
+        attr.lazy: bool = kwargs.pop('lazy', getattr(py_type, 'lazy', False))
         attr.lazy_sql_cache = None
-        attr.is_volatile = kwargs.pop('volatile', False)
-        attr.optimistic = kwargs.pop('optimistic', None)
+        attr.is_volatile: bool = kwargs.pop('volatile', False)
+        attr.optimistic: bool = kwargs.pop('optimistic', None)
         attr.sql_default = kwargs.pop('sql_default', None)
         attr.py_check = kwargs.pop('py_check', None)
-        attr.hidden = kwargs.pop('hidden', False)
+        attr.hidden: bool = kwargs.pop('hidden', False)
         attr.interleave = kwargs.pop('interleave', None)
         attr.kwargs = kwargs
         attr.converters = []
@@ -2146,7 +2096,7 @@ class Attribute(object):
                 '`interleave` option cannot be specified for %s attribute %r' % (attr.__class__.__name__, attr))
             if attr.interleave not in (True, False): throw(TypeError,
                 '`interleave` option value should be True, False or None. Got: %r' % attr.interleave)
-    def linked(attr):
+    def linked(attr) -> None:
         reverse = attr.reverse
         if reverse.is_volatile:
             attr.is_volatile = True
@@ -2165,10 +2115,10 @@ class Attribute(object):
         for option in attr.kwargs:
             throw(TypeError, 'Attribute %s has unknown option %r' % (attr, option))
     @cut_traceback
-    def __repr__(attr):
+    def __repr__(attr) -> str:
         owner_name = attr.entity.__name__ if attr.entity else '?'
         return '%s.%s' % (owner_name, attr.name or '?')
-    def __lt__(attr, other):
+    def __lt__(attr, other: Any) -> None:
         return attr.id < other.id
     def _get_entity(attr, obj, entity):
         if entity is not None:
@@ -2447,15 +2397,8 @@ class Attribute(object):
             if old_val not in (None, NOT_LOADED): reverse.reverse_remove((old_val,), obj, undo_funcs)
             if new_val is not None: reverse.reverse_add((new_val,), obj, undo_funcs)
         else: throw(NotImplementedError)
-    def db_update_reverse(attr, obj, old_dbval, new_dbval):
-        reverse = attr.reverse
-        if not reverse.is_collection:
-            if old_dbval not in (None, NOT_LOADED): reverse.db_set(old_dbval, NOT_LOADED, True)
-            if new_dbval is not None: reverse.db_set(new_dbval, obj, True)
-        elif isinstance(reverse, Set):
-            if old_dbval not in (None, NOT_LOADED): reverse.db_reverse_remove((old_dbval,), obj)
-            if new_dbval is not None: reverse.db_reverse_add((new_dbval,), obj)
-        else: throw(NotImplementedError)
+    def db_update_reverse(attr: "Attribute", obj: "Entity", old_dbval: Any, new_dbval: Any) -> None:
+        db_update_reverse(attr, obj, old_dbval, new_dbval)
     def __delete__(attr, obj):
         throw(NotImplementedError)
     def get_raw_values(attr, val):
@@ -2477,7 +2420,7 @@ class Attribute(object):
             attr.col_paths = [ attr.name ]
             attr.converters = [ provider.get_converter_by_attr(attr) ]
         else:
-            def generate_columns():
+            def generate_columns() -> None:
                 reverse_pk_columns = reverse.entity._get_pk_columns_()
                 reverse_pk_col_paths = reverse.entity._pk_paths_
                 if not attr.columns:
@@ -2505,12 +2448,12 @@ class Attribute(object):
         else: attr.column = None
         return attr.columns
     @property
-    def asc(attr):
+    def asc(attr) -> Self:
         return attr
     @property
-    def desc(attr):
+    def desc(attr) -> "DescWrapper":
         return DescWrapper(attr)
-    def describe(attr):
+    def describe(attr) -> str:
         t = attr.py_type
         if isinstance(t, type): t = t.__name__
         options = []
@@ -3093,7 +3036,7 @@ class Set(Collection):
             else: setdata.removed = to_remove  # removed may be None
         cache.modified_collections[attr].add(obj)
         cache.modified = True
-    def __delete__(attr, obj):
+    def __delete__(attr, obj: "Entity") -> NoReturn:
         throw(NotImplementedError)
     def reverse_add(attr, objects, item, undo_funcs):
         undo = []
@@ -3113,7 +3056,7 @@ class Set(Collection):
             if in_removed: setdata.removed.remove(item)
             else: setdata.added.add(item)
             objects_with_modified_collections.add(obj)
-        def undo_func():
+        def undo_func() -> None:
             for obj, in_removed, was_modified_earlier in undo:
                 setdata = obj._vals_[attr]
                 setdata.remove(item)
@@ -3122,10 +3065,11 @@ class Set(Collection):
                 else: setdata.added.remove(item)
                 if not was_modified_earlier: objects_with_modified_collections.remove(obj)
         undo_funcs.append(undo_func)
-    def db_reverse_add(attr, objects, item):
+    def db_reverse_add(attr, objects: Tuple["Entity", ...], item):
         for obj in objects:
-            setdata = obj._vals_.get(attr)
-            if setdata is None: setdata = obj._vals_[attr] = SetData()
+            vals = obj._vals_
+            setdata: Optional[SetData] = vals.get(attr)
+            if setdata is None: setdata = vals[attr] = SetData()
             elif setdata.is_fully_loaded and not attr.is_volatile: throw(UnrepeatableReadError,
                 'Phantom object %s appeared in collection %s.%s' % (safe_repr(item), safe_repr(obj), attr.name))
             setdata.add(item)
@@ -3305,10 +3249,10 @@ class SetInstance(object):
     def copy(wrapper):
         return wrapper._attr_.copy(wrapper._obj_)
     @cut_traceback
-    def __repr__(wrapper):
+    def __repr__(wrapper) -> str:
         return '<%s %r.%s>' % (wrapper.__class__.__name__, wrapper._obj_, wrapper._attr_.name)
     @cut_traceback
-    def __str__(wrapper):
+    def __str__(wrapper) -> str:
         cache = wrapper._obj_._session_cache_
         if cache is None or not cache.is_alive: content = '...'
         else: content = ', '.join(map(str, wrapper))
@@ -3622,7 +3566,7 @@ class Multiset(object):
     def distinct(multiset):
         return multiset._items_.copy()
     @cut_traceback
-    def __repr__(multiset):
+    def __repr__(multiset) -> str:
         cache = multiset._obj_._session_cache_
         if cache is not None and cache.is_alive:
             size = builtins.sum(multiset._items_.values())
@@ -3632,7 +3576,7 @@ class Multiset(object):
         return '<%s %r.%s%s>' % (multiset.__class__.__name__, multiset._obj_,
                                  '.'.join(multiset._attrnames_), size_str)
     @cut_traceback
-    def __str__(multiset):
+    def __str__(multiset) -> str:
         items_str = '{%s}' % ', '.join('%r: %r' % pair for pair in sorted(multiset._items_.items()))
         return '%s(%s)' % (multiset.__class__.__name__, items_str)
     @cut_traceback
@@ -3674,7 +3618,6 @@ class EntityIter(object):
     __next__ = next
 
 entity_id_counter = itertools.count(1)
-new_instance_id_counter = itertools.count(1)
 
 select_re = re.compile(r'select\b', re.IGNORECASE)
 lambda_re = re.compile(r'lambda\b')
@@ -3808,7 +3751,7 @@ class EntityMeta(type):
         else: pk_attrs = primary_keys.pop()
         for i, attr in enumerate(pk_attrs): attr.pk_offset = i
         entity._pk_columns_ = None
-        entity._pk_attrs_ = pk_attrs
+        entity._pk_attrs_: tuple = pk_attrs
         entity._pk_is_composite_ = len(pk_attrs) > 1
         entity._pk_ = pk_attrs if len(pk_attrs) > 1 else pk_attrs[0]
         entity._keys_ = [ index.attrs for index in indexes if index.is_unique and not index.is_pk ]
@@ -3876,9 +3819,9 @@ class EntityMeta(type):
         entity._default_genexpr_ = ast.GeneratorExp(ast.Name(iter_name, ast.Load()), [comprehension])
 
         entity._access_rules_ = defaultdict(set)
-    def _initialize_bits_(entity):
-        entity._bits_ = {}
-        entity._bits_except_volatile_ = {}
+    def _initialize_bits_(entity) -> None:
+        entity._bits_: dict[EntityMeta, int] = {}
+        entity._bits_except_volatile_: dict[EntityMeta, int] = {}
         offset_counter = itertools.count()
         all_bits = all_bits_except_volatile = 0
         for attr in entity._attrs_:
@@ -3892,7 +3835,7 @@ class EntityMeta(type):
             entity._bits_except_volatile_[attr] = bit
         entity._all_bits_ = all_bits
         entity._all_bits_except_volatile_ = all_bits_except_volatile
-    def _resolve_attr_types_(entity):
+    def _resolve_attr_types_(entity) -> None:
         database = entity._database_
         for attr in entity._new_attrs_:
             py_type = attr.py_type
@@ -4320,34 +4263,11 @@ class EntityMeta(type):
                 rbits = builtins.sum(obj._bits_except_volatile_.get(attr, 0) for attr in attrs)
                 rbits_dict[obj.__class__] = rbits
             obj._rbits_ |= rbits & ~wbits
-    def _parse_row_(entity, row, attr_offsets):
-        discr_attr = entity._discriminator_attr_
-        if not discr_attr:
-            discr_value = None
-            real_entity_subclass = entity
-        else:
-            discr_offset = attr_offsets[discr_attr][0]
-            discr_value = discr_attr.validate(row[discr_offset], None, entity, from_db=True)
-            real_entity_subclass = discr_attr.code2cls[discr_value]
-            discr_value = real_entity_subclass._discriminator_  # To convert str to str in Python 2.x
-
-        database = entity._database_
-        cache = local.db2cache[database]
-
-        avdict = {}
-        for attr in real_entity_subclass._attrs_:
-            offsets = attr_offsets.get(attr)
-            if offsets is None:
-                continue
-            if attr.is_discriminator:
-                avdict[attr] = discr_value
-            else:
-                avdict[attr] = attr.parse_value(row, offsets, cache.dbvals_deduplication_cache)
-
-        pkval = tuple(avdict.pop(attr) for attr in entity._pk_attrs_)
-        assert None not in pkval
-        if not entity._pk_is_composite_: pkval = pkval[0]
-        return real_entity_subclass, pkval, avdict
+            
+    # I moved this func to _core.py to compile it
+    def _parse_row_(entity, *args, **kwargs):
+        return _parse_row_(entity, *args, **kwargs)
+    
     def _load_many_(entity, objects):
         database = entity._database_
         cache = database._get_cache()
@@ -4399,86 +4319,13 @@ class EntityMeta(type):
         locals = locals.copy() if locals is not None else {}
         locals['.0'] = entity
         return Query(code_key, inner_expr, globals, locals, cells)
-    def _get_from_identity_map_(entity, pkval, status, for_update=False, undo_funcs=None, obj_to_init=None):
-        cache = entity._database_._get_cache()
-        pk_attrs = entity._pk_attrs_
-        cache_index = cache.indexes[pk_attrs]
-        if pkval is None: obj = None
-        else: obj = cache_index.get(pkval)
-
-        if obj is None: pass
-        elif status == 'created':
-            if entity._pk_is_composite_: pkval = ', '.join(str(item) for item in pkval)
-            throw(CacheIndexError, 'Cannot create %s: instance with primary key %s already exists'
-                             % (obj.__class__.__name__, pkval))
-        elif obj.__class__ is entity: pass
-        elif issubclass(obj.__class__, entity): pass
-        elif not issubclass(entity, obj.__class__): throw(TransactionError,
-            'Unexpected class change from %s to %s for object with primary key %r' %
-            (obj.__class__, entity, obj._pkval_))
-        elif obj._rbits_ or obj._wbits_: throw(NotImplementedError)
-        else: obj.__class__ = entity
-
-        if obj is None:
-            with cache.flush_disabled():
-                obj = obj_to_init
-                if obj_to_init is None:
-                    obj = object.__new__(entity)
-                cache.objects.add(obj)
-                obj._pkval_ = pkval
-                obj._status_ = status
-                obj._vals_ = {}
-                obj._dbvals_ = {}
-                obj._save_pos_ = None
-                obj._session_cache_ = cache
-                if pkval is not None:
-                    cache_index[pkval] = obj
-                    obj._newid_ = None
-                else: obj._newid_ = next(new_instance_id_counter)
-                if obj._pk_is_composite_: pairs = zip(pk_attrs, pkval)
-                else: pairs = ((pk_attrs[0], pkval),)
-                if status == 'loaded':
-                    assert undo_funcs is None
-                    obj._rbits_ = obj._wbits_ = 0
-                    for attr, val in pairs:
-                        obj._vals_[attr] = val
-                        if attr.reverse: attr.db_update_reverse(obj, NOT_LOADED, val)
-                    cache.seeds[pk_attrs].add(obj)
-                elif status == 'created':
-                    assert undo_funcs is not None
-                    obj._rbits_ = obj._wbits_ = None
-                    for attr, val in pairs:
-                        obj._vals_[attr] = val
-                        if attr.reverse: attr.update_reverse(obj, NOT_LOADED, val, undo_funcs)
-                    cache.for_update.add(obj)
-                else: assert False  # pragma: no cover
-        if for_update:
-            assert cache.in_transaction
-            cache.for_update.add(obj)
-        return obj
-    def _get_by_raw_pkval_(entity, raw_pkval, for_update=False, from_db=True, seed=True):
-        i = 0
-        pkval = []
-        for attr in entity._pk_attrs_:
-            if attr.column is not None:
-                val = raw_pkval[i]
-                i += 1
-                if not attr.reverse: val = attr.validate(val, None, entity, from_db=from_db)
-                else: val = attr.py_type._get_by_raw_pkval_((val,), from_db=from_db, seed=seed)
-            else:
-                if not attr.reverse: throw(NotImplementedError)
-                vals = raw_pkval[i:i+len(attr.columns)]
-                val = attr.py_type._get_by_raw_pkval_(vals, from_db=from_db, seed=seed)
-                i += len(attr.columns)
-            pkval.append(val)
-        if not entity._pk_is_composite_: pkval = pkval[0]
-        else: pkval = tuple(pkval)
-        if seed:
-            obj = entity._get_from_identity_map_(pkval, 'loaded', for_update)
-        else:
-            obj = entity[pkval]
-        assert obj._status_ != 'cancelled'
-        return obj
+        
+    # I moved these funcs to _core.py to compile it
+    def _get_from_identity_map_(entity, *args, **kwargs):
+        return _get_from_identity_map_(entity, *args, **kwargs)
+    def _get_by_raw_pkval_(entity, *args, **kwargs):
+        return _get_by_raw_pkval_(entity, *args, **kwargs)
+    
     def _get_propagation_mixin_(entity):
         mixin = entity._propagation_mixin_
         if mixin is not None: return mixin
@@ -4637,7 +4484,7 @@ class EntityProxy(object):
             assert pkval is not None
         object.__setattr__(self, '_obj_pk_', pkval)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         entity = self._entity_
         pkval = self._obj_pk_
         pkrepr = ','.join(repr(item) for item in pkval) if isinstance(pkval, tuple) else repr(pkval)
@@ -4750,17 +4597,8 @@ class Entity(object, metaclass=EntityMeta):
         pkval = obj._get_raw_pkval_()
         if len(pkval) == 1: return pkval[0]
         return pkval
-    def _get_raw_pkval_(obj):
-        pkval = obj._pkval_
-        if not obj._pk_is_composite_:
-            if not obj._pk_attrs_[0].reverse: return (pkval,)
-            else: return pkval._get_raw_pkval_()
-        raw_pkval = []
-        append, extend = raw_pkval.append, raw_pkval.extend
-        for attr, val in zip(obj._pk_attrs_, pkval):
-            if not attr.reverse: append(val)
-            else: extend(val._get_raw_pkval_())
-        return tuple(raw_pkval)
+    def _get_raw_pkval_(obj) -> tuple[Any, ...]:
+        return _get_raw_pkval_(obj)
     @cut_traceback
     def __lt__(entity, other):
         return entity._cmp_(other) < 0
@@ -4787,7 +4625,7 @@ class Entity(object, metaclass=EntityMeta):
             if result: return result
         return cmp(id(entity), id(other))
     @cut_traceback
-    def __repr__(obj):
+    def __repr__(obj) -> str:
         pkval = obj._pkval_
         if pkval is None: return '%s[new:%d]' % (obj.__class__.__name__, obj._newid_)
         if obj._pk_is_composite_: pkval = ','.join(map(repr, pkval))
@@ -4904,70 +4742,11 @@ class Entity(object, metaclass=EntityMeta):
                 obj._save_pos_ = len(objects_to_save)
                 objects_to_save.append(obj)
                 cache.modified = True
+                
+    # I moved this func to _core.py to compile it
     def _db_set_(obj, avdict, unpickling=False):
-        assert obj._status_ not in created_or_deleted_statuses
-        cache = obj._session_cache_
-        assert cache is not None and cache.is_alive
-        cache.seeds[obj._pk_attrs_].discard(obj)
-        if not avdict: return
-
-        get_val = obj._vals_.get
-        get_dbval = obj._dbvals_.get
-        rbits = obj._rbits_
-        wbits = obj._wbits_
-        for attr, new_dbval in list(avdict.items()):
-            assert attr.pk_offset is None
-            assert new_dbval is not NOT_LOADED
-            old_dbval = get_dbval(attr, NOT_LOADED)
-            if old_dbval is not NOT_LOADED:
-                if unpickling or old_dbval == new_dbval or (
-                        not attr.reverse and attr.converters[0].dbvals_equal(old_dbval, new_dbval)):
-                    del avdict[attr]
-                    continue
-
-        if unpickling:
-            new_vals = avdict
-            new_dbvals = {attr: attr.converters[0].val2dbval(val, obj) if not attr.reverse else val
-                                for attr, val in avdict.items()}
-        else:
-            new_dbvals = avdict
-            new_vals = {attr: attr.converters[0].dbval2val(dbval, obj) if not attr.reverse else dbval
-                              for attr, dbval in avdict.items()}
-
-        for attr, new_val in list(new_vals.items()):
-            new_dbval = new_dbvals[attr]
-            old_dbval = get_dbval(attr, NOT_LOADED)
-            bit = obj._bits_except_volatile_[attr]
-            if rbits & bit:
-                errormsg = 'Please contact PonyORM developers so they can ' \
-                           'reproduce your error and fix a bug: support@ponyorm.org'
-                assert old_dbval is not NOT_LOADED, errormsg
-                throw(UnrepeatableReadError,
-                      'Value of %s.%s for %s was updated outside of current transaction (was: %r, now: %r)'
-                      % (obj.__class__.__name__, attr.name, obj, old_dbval, new_dbval))
-
-            if attr.reverse: attr.db_update_reverse(obj, old_dbval, new_dbval)
-            obj._dbvals_[attr] = new_dbval
-            if wbits & bit:
-                del new_vals[attr]
-
-        for attr, new_val in new_vals.items():
-            if attr.is_unique:
-                old_val = get_val(attr)
-                if old_val != new_val:
-                    cache.db_update_simple_index(obj, attr, old_val, new_val)
-
-        for attrs in obj._composite_keys_:
-            if any(attr in new_vals for attr in attrs):
-                key_vals = [ get_val(a) for a in attrs ]  # In Python 2 var name leaks into the function scope!
-                prev_key_vals = tuple(key_vals)
-                for i, attr in enumerate(attrs):
-                    if attr in new_vals: key_vals[i] = new_vals[attr]
-                new_key_vals = tuple(key_vals)
-                if prev_key_vals != new_key_vals:
-                    cache.db_update_composite_index(obj, attrs, prev_key_vals, new_key_vals)
-
-        obj._vals_.update(new_vals)
+        return _db_set_(obj, avdict, unpickling=unpickling)
+        
     def _delete_(obj, undo_funcs=None):
         status = obj._status_
         if status in del_statuses: return
@@ -5164,10 +4943,8 @@ class Entity(object, metaclass=EntityMeta):
                 throw(TypeError, 'Cannot change value of primary key attribute %s' % attr.name)
         return avdict, collection_avdict
     @classmethod
-    def _attrs_with_bit_(entity, attrs, mask=-1):
-        get_bit = entity._bits_.get
-        for attr in attrs:
-            if get_bit(attr) & mask: yield attr
+    def _attrs_with_bit_(entity, attrs: list["Attribute"], mask: int = -1) -> Iterator["Attribute"]:
+        return _attrs_with_bit_(entity, attrs, mask)
     def _construct_optimistic_criteria_(obj):
         optimistic_columns = []
         optimistic_converters = []
@@ -6260,32 +6037,6 @@ class Query(object):
         return query._database.to_json(query[:], include, exclude, converter, with_schema, schema_hash)
 
 
-class QueryResultIterator(object):
-    __slots__ = '_query_result', '_position'
-    def __init__(self, query_result):
-        self._query_result = query_result
-        self._position = 0
-    def _get_type_(self):
-        if self._position != 0:
-            throw(NotImplementedError, 'Cannot use partially exhausted iterator, please convert to list')
-        return self._query_result._get_type_()
-    def _normalize_var(self, query_type):
-        if self._position != 0: throw(NotImplementedError)
-        return self._query_result._normalize_var(query_type)
-    def next(self):
-        qr = self._query_result
-        if qr._items is None:
-            qr._items = qr._query._actual_fetch(qr._limit, qr._offset)
-        if self._position >= len(qr._items):
-            raise StopIteration
-        item = qr._items[self._position]
-        self._position += 1
-        return item
-    __next__ = next
-    def __length_hint__(self):
-        return len(self._query_result) - self._position
-
-
 def make_query_result_method_error_stub(name, title=None):
     def func(self, *args, **kwargs):
         throw(TypeError, 'In order to do %s, cast QueryResult to list first' % (title or name))
@@ -6293,7 +6044,7 @@ def make_query_result_method_error_stub(name, title=None):
 
 class QueryResult(object):
     __slots__ = '_query', '_limit', '_offset', '_items', '_expr_type', '_col_names'
-    def __init__(self, query, limit, offset, lazy):
+    def __init__(self, query: "Query", limit, offset, lazy: bool) -> None:
         translator = query._translator
         self._query = query
         self._limit = limit
@@ -6323,15 +6074,15 @@ class QueryResult(object):
     def __setstate__(self, state):
         self._query = None
         self._items, self._limit, self._offset, self._expr_type, self._col_names = state
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self._items is not None:
             return self.__str__()
         return '<Lazy QueryResult object at %s>' % hex(id(self))
-    def __str__(self):
+    def __str__(self) -> str:
         return repr(self._get_items())
-    def __iter__(self):
+    def __iter__(self) -> QueryResultIterator:
         return QueryResultIterator(self)
-    def __len__(self):
+    def __len__(self) -> int:
         if self._items is None:
             self._items = self._query._actual_fetch(self._limit, self._offset)
         return len(self._items)

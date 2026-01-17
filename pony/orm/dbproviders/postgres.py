@@ -4,6 +4,7 @@ from pony.py23compat import buffer, int_types
 from decimal import Decimal
 from datetime import datetime, date, time, timedelta
 from uuid import UUID
+from typing import Any, Final, Literal, final
 
 try:
     import psycopg2
@@ -24,36 +25,43 @@ psycopg2.extras.register_default_json(loads=lambda x: x)
 psycopg2.extras.register_default_jsonb(loads=lambda x: x)
 
 from pony.orm import core, dbschema, dbapiprovider, sqltranslation, ormtypes
+from pony.orm._sqlbuilding import Value
 from pony.orm.core import log_orm
 from pony.orm.dbapiprovider import DBAPIProvider, Pool, wrap_dbapi_exceptions
+from pony.orm.dbproviders._postgres import PGPool
 from pony.orm.sqltranslation import SQLTranslator
-from pony.orm.sqlbuilding import Value, SQLBuilder, join
+from pony.orm.sqlbuilding import SQLBuilder, join
 from pony.converting import timedelta2str
 from pony.utils import is_ident
 
 NoneType = type(None)
 
+@final
 class PGColumn(dbschema.Column):
-    auto_template = 'SERIAL PRIMARY KEY'
+    auto_template: Final = 'SERIAL PRIMARY KEY'
 
+@final
 class PGSchema(dbschema.DBSchema):
-    dialect = 'PostgreSQL'
-    column_class = PGColumn
+    dialect: Final = 'PostgreSQL'
+    column_class: Final = PGColumn
 
+@final
 class PGTranslator(SQLTranslator):
-    dialect = 'PostgreSQL'
+    dialect: Final = 'PostgreSQL'
 
+@final
 class PGValue(Value):
     __slots__ = []
-    def __str__(self):
+    def __str__(self) -> str:
         value = self.value
         if isinstance(value, bool):
             return value and 'true' or 'false'
         return Value.__str__(self)
 
+@final
 class PGSQLBuilder(SQLBuilder):
-    dialect = 'PostgreSQL'
-    value_class = PGValue
+    dialect: Final = 'PostgreSQL'
+    value_class: Final = PGValue
     def INSERT(builder, table_name, columns, values, returning=None):
         if not values: result = [ 'INSERT INTO ', builder.quote_name(table_name) ,' DEFAULT VALUES' ]
         else: result = SQLBuilder.INSERT(builder, table_name, columns, values)
@@ -136,94 +144,86 @@ class PGSQLBuilder(SQLBuilder):
         return 'ARRAY[', join(', ', (builder(item) for item in items)), ']'
 
 
+@final
 class PGIntConverter(dbapiprovider.IntConverter):
     signed_types = {None: 'INTEGER', 8: 'SMALLINT', 16: 'SMALLINT', 24: 'INTEGER', 32: 'INTEGER', 64: 'BIGINT'}
     unsigned_types = {None: 'INTEGER', 8: 'SMALLINT', 16: 'INTEGER', 24: 'INTEGER', 32: 'BIGINT'}
 
+@final
 class PGRealConverter(dbapiprovider.RealConverter):
-    def sql_type(converter):
+    def sql_type(converter) -> Literal["DOUBLE PRECISION"]:
         return 'DOUBLE PRECISION'
 
+@final
 class PGBlobConverter(dbapiprovider.BlobConverter):
-    def sql_type(converter):
+    def sql_type(converter) -> Literal["BYTEA"]:
         return 'BYTEA'
 
+@final
 class PGTimedeltaConverter(dbapiprovider.TimedeltaConverter):
-    sql_type_name = 'INTERVAL DAY TO SECOND'
+    sql_type_name: Final = 'INTERVAL DAY TO SECOND'
 
+@final
 class PGDatetimeConverter(dbapiprovider.DatetimeConverter):
-    sql_type_name = 'TIMESTAMP'
+    sql_type_name: Final = 'TIMESTAMP'
 
+@final
 class PGUuidConverter(dbapiprovider.UuidConverter):
     def py2sql(converter, val):
         return val
 
+@final
 class PGJsonConverter(dbapiprovider.JsonConverter):
-    def sql_type(self):
+    def sql_type(self) -> Literal["JSONB"]:
         return "JSONB"
 
+@final
 class PGArrayConverter(dbapiprovider.ArrayConverter):
-    array_types = {
+    array_types: Final = {
         int: ('int', PGIntConverter),
         str: ('text', dbapiprovider.StrConverter),
         float: ('double precision', PGRealConverter)
     }
 
-class PGPool(Pool):
-    def _connect(pool):
-        pool.con = pool.dbapi_module.connect(*pool.args, **pool.kwargs)
-        if 'client_encoding' not in pool.kwargs:
-            pool.con.set_client_encoding('UTF8')
-    def release(pool, con):
-        assert con is pool.con
-        try:
-            con.rollback()
-            con.autocommit = True
-            cursor = con.cursor()
-            cursor.execute('DISCARD ALL')
-            con.autocommit = False
-        except:
-            pool.drop(con)
-            raise
+
+ADMIN_SHUTDOWN: Final = '57P01'
 
 
-ADMIN_SHUTDOWN = '57P01'
-
-
+@final
 class PGProvider(DBAPIProvider):
-    dialect = 'PostgreSQL'
-    paramstyle = 'pyformat'
-    max_name_len = 63
-    max_params_count = 10000
-    index_if_not_exists_syntax = False
+    dialect: Final = 'PostgreSQL'
+    paramstyle: Final = 'pyformat'
+    max_name_len: Final = 63
+    max_params_count: Final = 10000
+    index_if_not_exists_syntax: Final = False
 
-    dbapi_module = psycopg2
-    dbschema_cls = PGSchema
-    translator_cls = PGTranslator
-    sqlbuilder_cls = PGSQLBuilder
-    array_converter_cls = PGArrayConverter
+    dbapi_module: Final = psycopg2
+    dbschema_cls: Final = PGSchema
+    translator_cls: Final = PGTranslator
+    sqlbuilder_cls: Final = PGSQLBuilder
+    array_converter_cls: Final = PGArrayConverter
 
-    default_schema_name = 'public'
+    default_schema_name: Final = 'public'
 
-    fk_types = { 'SERIAL' : 'INTEGER', 'BIGSERIAL' : 'BIGINT' }
+    fk_types: Final = { 'SERIAL' : 'INTEGER', 'BIGSERIAL' : 'BIGINT' }
 
-    def normalize_name(provider, name):
+    def normalize_name(provider, name: str) -> str:
         return name[:provider.max_name_len].lower()
 
     @wrap_dbapi_exceptions
-    def inspect_connection(provider, connection):
+    def inspect_connection(provider, connection) -> None:
         provider.server_version = connection.server_version
         provider.table_if_not_exists_syntax = provider.server_version >= 90100
 
-    def should_reconnect(provider, exc):
+    def should_reconnect(provider, exc: Exception) -> bool:
         return isinstance(exc, psycopg2.OperationalError) \
                and exc.pgcode in (None, ADMIN_SHUTDOWN)
 
-    def get_pool(provider, *args, **kwargs):
+    def get_pool(provider, *args, **kwargs) -> PGPool:
         return PGPool(provider.dbapi_module, *args, **kwargs)
 
     @wrap_dbapi_exceptions
-    def set_transaction_mode(provider, connection, cache):
+    def set_transaction_mode(provider, connection, cache) -> None:
         assert not cache.in_transaction
         if cache.immediate and connection.autocommit:
             connection.autocommit = False
@@ -241,7 +241,7 @@ class PGProvider(DBAPIProvider):
             cache.in_transaction = True
 
     @wrap_dbapi_exceptions
-    def execute(provider, cursor, sql, arguments=None, returning_id=False):
+    def execute(provider, cursor, sql: str, arguments: Any = None, returning_id: bool = False) -> Any:
         if type(arguments) is list:
             assert arguments and not returning_id
             cursor.executemany(sql, arguments)
@@ -250,7 +250,7 @@ class PGProvider(DBAPIProvider):
             else: cursor.execute(sql, arguments)
             if returning_id: return cursor.fetchone()[0]
 
-    def table_exists(provider, connection, table_name, case_sensitive=True):
+    def table_exists(provider, connection, table_name: str, case_sensitive: bool = True) -> str:
         schema_name, table_name = provider.split_table_name(table_name)
         cursor = connection.cursor()
         if case_sensitive: sql = 'SELECT tablename FROM pg_catalog.pg_tables ' \
@@ -261,7 +261,7 @@ class PGProvider(DBAPIProvider):
         row = cursor.fetchone()
         return row[0] if row is not None else None
 
-    def index_exists(provider, connection, table_name, index_name, case_sensitive=True):
+    def index_exists(provider, connection, table_name: str, index_name: str, case_sensitive: bool = True) -> str:
         schema_name, table_name = provider.split_table_name(table_name)
         cursor = connection.cursor()
         if case_sensitive: sql = 'SELECT indexname FROM pg_catalog.pg_indexes ' \
@@ -272,7 +272,7 @@ class PGProvider(DBAPIProvider):
         row = cursor.fetchone()
         return row[0] if row is not None else None
 
-    def fk_exists(provider, connection, table_name, fk_name, case_sensitive=True):
+    def fk_exists(provider, connection, table_name: str, fk_name: str, case_sensitive: bool = True) -> str:
         schema_name, table_name = provider.split_table_name(table_name)
         if case_sensitive: sql = 'SELECT con.conname FROM pg_class cls ' \
                                  'JOIN pg_namespace ns ON cls.relnamespace = ns.oid ' \
@@ -289,12 +289,12 @@ class PGProvider(DBAPIProvider):
         row = cursor.fetchone()
         return row[0] if row is not None else None
 
-    def drop_table(provider, connection, table_name):
+    def drop_table(provider, connection, table_name: str) -> None:
         cursor = connection.cursor()
         sql = 'DROP TABLE %s CASCADE' % provider.quote_name(table_name)
         cursor.execute(sql)
 
-    converter_classes = [
+    converter_classes: Final = [
         (NoneType, dbapiprovider.NoneConverter),
         (bool, dbapiprovider.BoolConverter),
         (str, dbapiprovider.StrConverter),
@@ -310,4 +310,4 @@ class PGProvider(DBAPIProvider):
         (ormtypes.Json, PGJsonConverter),
     ]
 
-provider_cls = PGProvider
+provider_cls: Final = PGProvider
